@@ -17,9 +17,11 @@ A high-performance, modular, and extensible Python-based algorithmic trading bac
 ## Getting Started
 
 ### 1. Prerequisites
+
 - Python 3.10+ (Fully compatible with Python 3.14+)
 
 ### 2. Setup Virtual Environment
+
 Run the following commands to initialize the virtual environment and install the required dependencies:
 
 ```bash
@@ -69,7 +71,7 @@ You can customize the backtester via CLI arguments:
 ## Project Architecture
 
 ```text
-btc-algo-trader/
+autotrade/
 ├── data/
 │   ├── __init__.py
 │   └── loader.py          # Fetches CCXT data and caches to CSV files
