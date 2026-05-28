@@ -89,11 +89,11 @@ This chart contains two panels:
 
 We added a parallel execution module in `live/` to run the strategy on real-time data using WebSockets, with transaction logs saved to a local SQLite database.
 
-### 🗺️ Localization & Regional Settings
+### ️ Localization & Regional Settings
 * **Currency Support:** The paper portfolio uses **Philippine Peso (₱)**. A configurable exchange conversion rate (default 58.5) calculates balances, sizes, and fees in PHP, while pricing remains in the exchange standard USD.
 * **Timezone Offset:** All timestamps logged to the console, database, and Discord alerts are formatted in **Philippine Time (PHT, UTC+8)**.
 
-### 🔔 Alert System: Discord Webhook Integration
+###  Alert System: Discord Webhook Integration
 When a trade signal is executed, the executor builds and sends a rich embed payload to a Discord Webhook. It includes:
 * Buy entries (Green embed) displaying size in BTC, entry price in USD/PHP, transaction fee, and current portfolio estimate.
 * Sell exits (Green if profitable, Red if loss) showing size, sell price, net cash received in PHP, fee paid, and trade profit/loss with percentages.
@@ -149,7 +149,7 @@ Current Portfolio Balance:
 
 We implemented a multi-dimensional grid search parameter optimizer in `optimize.py` to mathematically determine the best combinations for maximizing returns and Sharpe ratios while minimizing drawdowns.
 
-### 🏃 Running the Optimizer
+###  Running the Optimizer
 ```bash
 # Optimize the Crossover Strategy (sweeps Fast/Slow combinations + MA types)
 ./venv/bin/python3 optimize.py --strategy crossover --start 2025-01-01 --end 2025-12-31
@@ -158,7 +158,7 @@ We implemented a multi-dimensional grid search parameter optimizer in `optimize.
 ./venv/bin/python3 optimize.py --strategy rsi --start 2025-01-01 --end 2025-12-31
 ```
 
-### 📊 Verification Sweep Outputs
+###  Verification Sweep Outputs
 
 #### 1. Crossover Strategy Sweep (158 combinations evaluated):
 * **Rank 1 Combination:** Fast MA: 5, Slow MA: 40, Type: SMA
@@ -184,7 +184,7 @@ All sweeps generate a complete grid results list saved directly to **[optimizati
 
 We implemented a new **Moving Average Convergence Divergence (MACD) Crossover Strategy** (`MACDStrategy`) across the entire algorithmic suite (backtesting CLI, optimizer, and live paper trading module).
 
-### 🏃 Running MACD Backtest
+###  Running MACD Backtest
 ```bash
 ./venv/bin/python3 main.py --strategy macd --start 2025-01-01 --end 2025-12-31
 ```
@@ -199,7 +199,7 @@ We implemented a new **Moving Average Convergence Divergence (MACD) Crossover St
   * **Win Rate (%):** 23.53%
   * **Profit Factor:** 0.6018
 
-### 📊 Parameter Optimization for MACD (210 combinations evaluated)
+###  Parameter Optimization for MACD (210 combinations evaluated)
 ```bash
 ./venv/bin/python3 optimize.py --strategy macd --start 2025-01-01 --end 2025-12-31
 ```
@@ -217,21 +217,21 @@ We implemented a new **Moving Average Convergence Divergence (MACD) Crossover St
 
 To minimize losses and maximize profit, we implemented a comprehensive simulation suite (`optimize_backtests.py`) testing SMA/EMA crossovers, RSI, MACD, and Ensemble rules against different Stop-Loss (SL) and Take-Profit (TP) boundaries, and integrated these risk controls across all offline and live execution channels.
 
-### 📊 Simulation Outputs & Report
+###  Simulation Outputs & Report
 We backtested **980 combinations** on 2025 BTC daily candle data, saving full outputs to **[strategy_simulation_analysis.csv](file:///home/arvin/Project/btc-algo-trader/strategy_simulation_analysis.csv)**. Key findings were stored in **[analysis_results.md](file:///home/arvin/Project/btc-algo-trader/analysis_results.md)**.
 * **Winner Strategy:** `SMA_Cross_20_50` with a **1% Stop-Loss** and **3% Take-Profit**.
 * **Metrics:** **+29.40% Return** (outperforming Buy & Hold by **+36.74%**), **2.1178 Sharpe Ratio**, and a **Max Drawdown of 5.84%**.
 
-### 🛠️ Key Technical Enhancements
+### ️ Key Technical Enhancements
 1. **Engine Risk Controls ([simulator.py](file:///home/arvin/Project/btc-algo-trader/engine/simulator.py))**:
    - Integrates `stop_loss_pct` and `take_profit_pct` check directly inside the transaction loop, executing automatic risk liquidations and flagging them as `Stop Loss` or `Take Profit` in trade logs.
 2. **Integrated Ensemble Strategy ([simple.py](file:///home/arvin/Project/btc-algo-trader/strategies/simple.py))**:
    - Built `EnsembleStrategy` supporting three modes: `macd_rsi` filter, `ema_rsi` filter, and `triple` indicator consensus.
 3. **Live Auto-Liquidation & Alert system ([executor.py](file:///home/arvin/Project/btc-algo-trader/live/executor.py))**:
    - Intercepts live signals by checking the database entry price against active stop-loss/take-profit parameters. 
-   - Triggers an instant market sell-off upon breaches and pushes specialized Discord embeds styled in Red (`🛑 STOP LOSS TRIGGERED`) or Orange/Gold (`🛑 TAKE PROFIT TRIGGERED`).
+   - Triggers an instant market sell-off upon breaches and pushes specialized Discord embeds styled in Red (` STOP LOSS TRIGGERED`) or Orange/Gold (` TAKE PROFIT TRIGGERED`).
 
-### 🏃 Running the Recommended Loss-Minimizer Strategy
+###  Running the Recommended Loss-Minimizer Strategy
 * **Offline Backtest:**
   ```bash
   ./venv/bin/python3 main.py --strategy crossover --fast-window 20 --slow-window 50 --stop-loss 0.01 --take-profit 0.03 --start 2025-01-01 --end 2025-12-31
@@ -247,7 +247,7 @@ We backtested **980 combinations** on 2025 BTC daily candle data, saving full ou
 
 We designed and built a premium web-based tracking dashboard running on **FastAPI** and styled with a custom responsive **Vanilla CSS glassmorphic** layout. 
 
-### 🛠️ Key Dashboard Features
+### ️ Key Dashboard Features
 1. **Real-Time Streaming (`/ws`)**: Uses a WebSocket connection to stream price updates, portfolio valuations, and active position indicators to the browser every 2 seconds.
 2. **Interactive Charting (Chart.js)**:
    - **Equity Curve Line Chart**: Plots running PHP balance over time based on closed trade results.
@@ -255,7 +255,7 @@ We designed and built a premium web-based tracking dashboard running on **FastAP
 3. **Responsive Glassmorphism Styling**: Uses blur backdrops, radial gradients, glowing card grids, hover animations, and custom action badges.
 4. **Live Trade Log Data Table**: Renders entries, exits, trade sizing, profit percentages, fee metrics, and status cards dynamically.
 
-### 🏃 Running the Web Dashboard
+###  Running the Web Dashboard
 * Start the server (default port `8000`):
   ```bash
   ./venv/bin/uvicorn web.app:app --host 0.0.0.0 --port 8000
@@ -268,34 +268,34 @@ We designed and built a premium web-based tracking dashboard running on **FastAP
 
 After observing the 1-minute Crossover strategy losing money in live paper trading due to frequent whipsaws and fee drag, we pivoted to a data-driven approach: downloading 6 months of historical 1-hour candle data and running a comprehensive optimization sweep to find the best intraday strategy.
 
-### 🛠️ Infrastructure Changes
+### ️ Infrastructure Changes
 1. **CLI-Configurable Deep Sweep ([optimize_backtests.py](file:///home/arvin/Project/btc-algo-trader/optimize_backtests.py))**:
    - Added `argparse` support for `--timeframe`, `--start`, `--end`, `--capital`, `--fee`, and `--output` parameters.
    - Previously hardcoded to daily 2025 data; now supports any timeframe and date range.
 
-### 📊 1-Hour Sweep Results (910 Configurations)
+###  1-Hour Sweep Results (910 Configurations)
 We tested all strategy families (Crossover, RSI, MACD, Ensemble) × Stop-Loss/Take-Profit combinations against **4,345 hourly candles** from Nov 27, 2025 to May 27, 2026.
 
 **Market context:** BTC dropped from $90,485 to $76,085 during this period (**-15.92% Buy & Hold**, **-35.59% Max Drawdown**).
 
 | Strategy Family | Best Return | Best Sharpe | Verdict |
 |---|---|---|---|
-| **RSI (14, 30, 75)** | **+9.83%** | **0.1482** | ✅ **Only profitable family** |
-| SMA Crossover (20/50) | -6.72% | -0.074 | ❌ Whipsaw losses |
-| MACD (12/26/9) | -11.16% | -0.132 | ❌ Trend-following fails in bear market |
-| Ensemble (MACD+RSI) | -14.19% | -0.203 | ❌ Over-trading at high frequency |
+| **RSI (14, 30, 75)** | **+9.83%** | **0.1482** |  **Only profitable family** |
+| SMA Crossover (20/50) | -6.72% | -0.074 |  Whipsaw losses |
+| MACD (12/26/9) | -11.16% | -0.132 |  Trend-following fails in bear market |
+| Ensemble (MACD+RSI) | -14.19% | -0.203 |  Over-trading at high frequency |
 
 **Winner:** `RSI_14_OS30_OB75` with **3% Stop-Loss** and **10% Take-Profit** — returned **+9.83%** while the benchmark lost **-15.92%**, outperforming by **+25.75%**.
 
 Full results saved to **[hourly_simulation_analysis.csv](file:///home/arvin/Project/btc-algo-trader/hourly_simulation_analysis.csv)**.
 
-### 🔄 Live Bot Switch
+###  Live Bot Switch
 Stopped the 1-minute SMA Crossover bot and started the optimized 1-hour RSI bot:
 ```bash
 ./venv/bin/python3 main_live.py --strategy rsi --rsi-window 14 --rsi-oversold 30 --rsi-overbought 75 --stop-loss 0.03 --take-profit 0.10 --timeframe 1h
 ```
 
-### 📈 Key Intraday Findings
+###  Key Intraday Findings
 1. **Mean-reversion (RSI) beats trend-following in bear/sideways markets.** Crossover strategies generate excessive false signals on noisy 1-hour data.
 2. **Wider stop-losses are critical for intraday.** A 1% SL gets stopped out by normal hourly wicks; 3% SL gives enough room to survive noise while still protecting capital.
 3. **Take-Profit of 10% captures full hourly swing moves** rather than exiting too early with 3%.

@@ -1,4 +1,4 @@
-# 🚀 Deployment Guide: Running the VolumeRSI Multi-Asset Bot 24/7
+#  Deployment Guide: Running the VolumeRSI Multi-Asset Bot 24/7
 
 This guide walks you through deploying the live trading bot and glassmorphic web dashboard to a cloud server so it runs continuously without your computer being on.
 
@@ -10,7 +10,7 @@ Because the bot uses the Binance API (which bans US IP addresses), you must host
 
 | Provider | Region | Price | Recommended? |
 |---|---|---|---|
-| **Oracle Cloud Free Tier** | Singapore / Tokyo | **100% Free** | ⭐ **Best Option** (Always-Free ARM instances) |
+| **Oracle Cloud Free Tier** | Singapore / Tokyo | **100% Free** |  **Best Option** (Always-Free ARM instances) |
 | **Google Cloud Platform (GCP)** | Singapore (`asia-southeast1`) | ~$5/mo | Requires using GCP Trial Credits or paying |
 
 ### Create the Server (Google Cloud Example)
@@ -66,7 +66,7 @@ DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 
 ---
 
-## Step 5: Initialize the Database and Launch 🚀
+## Step 5: Initialize the Database and Launch 
 
 **CRITICAL DOCKER FIX:** You must create an empty database file *before* running Docker Compose, otherwise Docker will accidentally create a folder instead of a file and the bot will crash!
 
@@ -105,7 +105,7 @@ http://YOUR_EXTERNAL_IP:8000
 
 ---
 
-## 🔧 Useful Commands / Troubleshooting
+##  Useful Commands / Troubleshooting
 
 **Graceful Shutdown:**
 ```bash

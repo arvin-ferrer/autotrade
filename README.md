@@ -6,7 +6,7 @@ It seamlessly transitions from deep historical backtesting to 24/7 Live Paper Tr
 
 ---
 
-## 🌟 Core Features
+##  Core Features
 
 - **The VolumeRSI Breakout Engine:** A mathematically verified momentum strategy that dynamically scales RSI using Volume Moving Averages to catch massive crypto breakouts while filtering out low-volume chop.
 - **Tick-by-Tick Risk Management:** Unlike traditional bots that wait for a candle to close, this bot analyzes sub-second Binance WebSocket ticks to execute 1% emergency stop-losses in real-time, preventing flash-crash liquidations.
@@ -17,7 +17,7 @@ It seamlessly transitions from deep historical backtesting to 24/7 Live Paper Tr
 
 ---
 
-## 🚀 Live Trading Deployment
+##  Live Trading Deployment
 
 For full cloud deployment instructions (including Google Cloud setup, fixing Docker SQLite bugs, and configuring `.env` keys), please read the [DEPLOY.md](DEPLOY.md) guide.
 
@@ -58,7 +58,7 @@ Open `http://localhost:8000` to watch your portfolio grow!
 
 ---
 
-## 🔬 Backtesting Engine
+##  Backtesting Engine
 
 Before risking capital, you can simulate years of historical data to prove the strategy works across different market regimes (Bull Markets, Bear Markets, Sideways Chop).
 
@@ -78,7 +78,7 @@ The backtester models capital constraints, fractional shares, taker fee structur
 
 ---
 
-## 📂 Project Architecture
+##  Project Architecture
 
 ```text
 autotrade/

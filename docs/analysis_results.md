@@ -4,7 +4,7 @@ This report presents the findings of our comprehensive strategy simulation suite
 
 ---
 
-## 📊 Summary of Top Configurations (Sorted by Sharpe Ratio)
+##  Summary of Top Configurations (Sorted by Sharpe Ratio)
 
 | Rank | Strategy Name | Stop Loss (SL) | Take Profit (TP) | Total Return | Sharpe Ratio | Max Drawdown | Total Trades | Win Rate | Profit Factor | SL/TP Hits |
 |:---:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -21,7 +21,7 @@ This report presents the findings of our comprehensive strategy simulation suite
 
 ---
 
-## 📈 Analysis of Findings
+##  Analysis of Findings
 
 ### 1. The Power of Tight Risk Controls (1% SL / 3% TP)
 The single most significant discovery of the simulation was that **implementing a tight 1% Stop-Loss and 3% Take-Profit dramatically improves the Sharpe Ratio** and controls risk across the board.
@@ -41,7 +41,7 @@ The single most significant discovery of the simulation was that **implementing 
 
 ---
 
-## 🏆 Recommendation: The Loss-Minimizer Strategy
+##  Recommendation: The Loss-Minimizer Strategy
 
 To minimize losses and maximize profit, we recommend running the **SMA 20/50 Crossover Strategy with a 1% Stop-Loss and a 3% Take-Profit**.
 
@@ -65,18 +65,18 @@ To minimize losses and maximize profit, we recommend running the **SMA 20/50 Cro
 
 ---
 
-## 🕒 1-Hour Intraday Strategy Simulation & Analysis (Nov 2025 - May 2026)
+##  1-Hour Intraday Strategy Simulation & Analysis (Nov 2025 - May 2026)
 
 To optimize the strategy for intraday trading, we downloaded **4,345 1-hour candles** covering a 6-month period from **November 27, 2025, to May 27, 2026**. We ran a deep sweep of **910 configurations** across SMA/EMA Crossover, RSI, MACD, and Ensemble strategies with varying Stop-Loss and Take-Profit boundaries.
 
-### 📉 Intraday Market Context
+###  Intraday Market Context
 During this 6-month period, Bitcoin was in a significant correction phase (bear market / choppy range):
 * **BTC Starting Price:** $90,485.85 USD
 * **BTC Ending Price:** $76,085.01 USD
 * **BTC Buy & Hold Return:** **-15.92%**
 * **BTC Buy & Hold Max Drawdown:** **-35.59%**
 
-### 📊 Top 1h Intraday Configurations (Sorted by Sharpe Ratio)
+###  Top 1h Intraday Configurations (Sorted by Sharpe Ratio)
 
 | Rank | Strategy Name | Stop Loss (SL) | Take Profit (TP) | Total Return | Sharpe Ratio | Max Drawdown | Total Trades | Win Rate | Profit Factor | SL/TP Hits |
 |:---:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -91,7 +91,7 @@ During this 6-month period, Bitcoin was in a significant correction phase (bear 
 | **9** | **RSI_14_OS30_OB75** | **5%** | **15%** | **+5.68%** | **0.0993** | **31.59%** | **23** | **47.83%** | **1.1107** | 10 SL / 0 TP |
 | **10** | **RSI_14_OS30_OB75** | **5%** | **20%** | **+5.68%** | **0.0993** | **31.59%** | **23** | **47.83%** | **1.1107** | 10 SL / 0 TP |
 
-### 📈 Key Intraday Findings
+###  Key Intraday Findings
 
 1. **Mean Reversion is Mandatory in Down/Sideways Markets:**
    * **RSI (14, 30, 75)** was the only strategy family that remained profitable during this bear phase, yielding up to **+9.83%** return and outperforming the benchmark by **+25.75%**.

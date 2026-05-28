@@ -4,7 +4,7 @@ This document provides a technical roadmap and architectural layout for improvin
 
 ---
 
-## 🛠️ Step 1: Real-World Backtesting Improvements
+## ️ Step 1: Real-World Backtesting Improvements
 
 Before exposing capital, you must eliminate standard backtesting biases:
 
@@ -24,7 +24,7 @@ Live trades need automated safety nets to exit positions without manual interven
 
 ---
 
-## 🚀 Step 2: The Deployment Roadmap
+##  Step 2: The Deployment Roadmap
 
 Transitioning to live markets should be done incrementally using this three-stage framework:
 
@@ -90,7 +90,7 @@ Deploy the trading bot to run 24/7 on a secure server.
 
 ---
 
-## 🔒 Step 3: Hardened Risk Controls
+##  Step 3: Hardened Risk Controls
 
 Automate safety thresholds directly in your execution loops:
 
