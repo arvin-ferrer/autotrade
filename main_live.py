@@ -6,8 +6,8 @@ from live.db import init_db, get_portfolio, get_pht_now
 from live.runner import start_live_session
 
 def load_env() -> dict:
-    """Helper to parse a local .env file if it exists without requiring python-dotenv"""
-    env = {}
+    """Helper to parse a local .env file if it exists, while prioritizing OS environment variables (like those from Docker)."""
+    env = dict(os.environ)
     if os.path.exists(".env"):
         try:
             with open(".env", "r") as f:
