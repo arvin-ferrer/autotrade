@@ -12,13 +12,13 @@ services:
       - ./data/.cache:/app/data/.cache
     command: >
       python main_live.py
-        --strategy rsi
-        --rsi-window 14
-        --rsi-oversold 30
-        --rsi-overbought 75
-        --stop-loss 0.03
-        --take-profit 0.10
+        --symbol "BTC/USDT,ETH/USDT,SOL/USDT"
         --timeframe 1h
+        --strategy volumersi
+        --stop-loss 0.01
+        --take-profit 0.10
+        --rsi-oversold 35.0
+        --vol-multiplier 2.0
 
   # Web Dashboard (accessible from browser)
   dashboard:
