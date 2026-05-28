@@ -1,226 +1,130 @@
-# 🚀 Deployment Guide: Running the BTC Algo Trader 24/7
+# 🚀 Deployment Guide: Running the VolumeRSI Multi-Asset Bot 24/7
 
-This guide walks you through deploying the trading bot and web dashboard to a cheap VPS so it runs continuously without your computer being on.
+This guide walks you through deploying the live trading bot and glassmorphic web dashboard to a cloud server so it runs continuously without your computer being on.
 
 ---
 
-## Step 1: Choose a VPS Provider
+## Step 1: Choose a Free Cloud Provider
 
-You need a small Linux server. Here are the cheapest options:
+Because the bot uses the Binance API (which bans US IP addresses), you must host your server in **Asia** or **Europe**. 
 
-| Provider | Cheapest Plan | RAM | Price/Month | Link |
-|---|---|---|---|---|
-| **Hetzner** (Recommended) | CX22 | 2 GB | **€3.79 (~₱240)** | [hetzner.com/cloud](https://www.hetzner.com/cloud) |
-| **DigitalOcean** | Basic Droplet | 1 GB | $6 (~₱370) | [digitalocean.com](https://www.digitalocean.com) |
-| **Vultr** | Cloud Compute | 1 GB | $5 (~₱310) | [vultr.com](https://www.vultr.com) |
-| **Linode (Akamai)** | Nanode | 1 GB | $5 (~₱310) | [linode.com](https://www.linode.com) |
+| Provider | Region | Price | Recommended? |
+|---|---|---|---|
+| **Oracle Cloud Free Tier** | Singapore / Tokyo | **100% Free** | ⭐ **Best Option** (Always-Free ARM instances) |
+| **Google Cloud Platform (GCP)** | Singapore (`asia-southeast1`) | ~$5/mo | Requires using GCP Trial Credits or paying |
 
-> [!TIP]
-> **Hetzner CX22** is the best value — 2 GB RAM, 20 GB SSD, located in Singapore (low latency to Binance). The bot uses ~100 MB RAM so even 1 GB is plenty.
-
-### Create the Server
-1. Sign up and create an **Ubuntu 24.04** server
-2. Choose the **Singapore** or **closest region** to minimize Binance API latency
-3. Add your **SSH key** during setup (or use a password)
-4. Note the server's **IP address** (e.g. `167.235.xx.xx`)
+### Create the Server (Google Cloud Example)
+1. Go to Google Cloud Console > **Compute Engine** > **VM Instances**.
+2. Create a new instance in **`asia-southeast1` (Singapore)**.
+3. Select the **`e2-micro`** machine.
+4. Under Boot Disk, select **Ubuntu 26.04 LTS**.
+5. Note the server's **External IP address**.
 
 ---
 
 ## Step 2: Connect to Your Server
 
+You can connect using Google Cloud's **SSH-in-Browser** button, or SSH directly from your terminal if you added an SSH key:
+
 ```bash
-ssh root@YOUR_SERVER_IP
+ssh username@YOUR_EXTERNAL_IP
 ```
 
 ---
 
-## Step 3: Install Docker
+## Step 3: Install Docker and Clone the Repository
 
-Run these commands on your VPS:
+Run these commands sequentially on your Cloud Server:
 
 ```bash
 # Update system
-apt update && apt upgrade -y
+sudo apt update && sudo apt install docker.io docker-compose -y
 
-# Install Docker
-curl -fsSL https://get.docker.com | sh
-
-# Verify Docker is installed
-docker --version
-docker compose version
+# Clone your repository
+git clone https://github.com/YOUR_USERNAME/autotrade.git
+cd autotrade
 ```
 
 ---
 
-## Step 4: Upload the Project
+## Step 4: Configure the Environment
 
-**Option A: Git (Recommended)**
-If your project is in a Git repository:
-```bash
-# On your VPS
-git clone https://github.com/YOUR_USERNAME/btc-algo-trader.git
-cd btc-algo-trader
-```
-
-**Option B: SCP (Direct Upload)**
-From your local machine:
-```bash
-# From your local machine (not the VPS)
-scp -r /home/arvin/Project/btc-algo-trader root@YOUR_SERVER_IP:/root/btc-algo-trader
-```
-Then on the VPS:
-```bash
-cd /root/btc-algo-trader
-```
-
----
-
-## Step 5: Configure Environment
-
-Create the `.env` file on the server:
+We excluded the `.env` file from GitHub for security. You must create it manually on the server:
 
 ```bash
+# Copy the template
+cp .env.example .env
+
+# Edit the file to add your Discord Webhook URL
 nano .env
 ```
 
-Paste your configuration:
+Paste your Discord Webhook URL inside (and press `Ctrl+O`, `Enter`, `Ctrl+X` to save):
 ```env
-DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/YOUR_WEBHOOK_HERE
-PHP_USD_RATE=61.55
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 ```
-
-Save with `Ctrl+X`, then `Y`, then `Enter`.
 
 ---
 
-## Step 6: Launch the Bot 🚀
+## Step 5: Initialize the Database and Launch 🚀
+
+**CRITICAL DOCKER FIX:** You must create an empty database file *before* running Docker Compose, otherwise Docker will accidentally create a folder instead of a file and the bot will crash!
 
 ```bash
-# Build and start both the trading bot and web dashboard
-docker compose up -d --build
+# 1. Create the empty file
+touch live_trading.db
+
+# 2. Build and launch the bot and dashboard permanently
+sudo docker-compose up -d --build
 ```
 
-That's it! The bot is now running 24/7. Docker will automatically restart it if it crashes.
+That's it! The bot is now running 24/7. 
 
 ### Verify It's Running
 
 ```bash
-# Check container status
-docker compose ps
-
-# View live trading bot logs
-docker compose logs -f trader
-
-# View dashboard logs
-docker compose logs -f dashboard
-```
-
-You should see output like:
-```
-btc-trader | [2026-05-27 15:08:46 PHT] Connected! Listening for real-time ticks...
-btc-dashboard | INFO: Uvicorn running on http://0.0.0.0:8000
-```
-
-### Access the Web Dashboard
-Open your browser and go to:
-```
-http://YOUR_SERVER_IP:8000
+# View real-time streaming bot ticks
+sudo docker compose logs -f trader
 ```
 
 ---
 
-## Step 7: Useful Commands
+## Step 6: Access the Glassmorphic Dashboard
 
-```bash
-# Stop everything
-docker compose down
+By default, Google Cloud blocks incoming internet traffic. You need to open **Port 8000**:
+1. Go to **VPC Network** > **Firewall** in Google Cloud.
+2. Click **Create Firewall Rule**.
+3. Targets: `All instances in the network`
+4. Source IPv4: `0.0.0.0/0`
+5. Protocol/Port: `TCP` port `8000`.
 
-# Restart the bot (after changing strategy params)
-docker compose restart trader
-
-# Rebuild after code changes
-docker compose up -d --build
-
-# View real-time bot logs
-docker compose logs -f trader
-
-# Check resource usage
-docker stats
+Open your browser and navigate to:
+```
+http://YOUR_EXTERNAL_IP:8000
 ```
 
 ---
 
-## Step 8: Change Strategy Parameters
+## 🔧 Useful Commands / Troubleshooting
 
-Edit the `docker-compose.yml` file to adjust strategy parameters:
-
+**Graceful Shutdown:**
 ```bash
-nano docker-compose.yml
+# Safely stops the bot and triggers a Discord shutdown alert
+sudo docker compose down
 ```
 
-Modify the `command` section under the `trader` service, then restart:
-
+**Bot crashed with "unable to open database file"?**
+You forgot the `touch live_trading.db` step! Run this to fix it:
 ```bash
-docker compose restart trader
+sudo docker compose down
+sudo rm -rf live_trading.db
+touch live_trading.db
+sudo docker compose up -d --build
 ```
 
----
-
-## 🔒 Security: Protect the Dashboard
-
-By default, the dashboard is open to anyone who knows the server IP. To add basic protection:
-
-### Option A: Firewall (Simplest)
-Only allow your home IP to access the dashboard:
+**Applying an Update from GitHub:**
 ```bash
-# Allow SSH from anywhere
-ufw allow 22
-
-# Allow dashboard only from your IP
-ufw allow from YOUR_HOME_IP to any port 8000
-
-# Enable firewall
-ufw enable
+sudo docker compose down
+git pull
+sudo docker compose up -d --build
 ```
-
-### Option B: SSH Tunnel (Most Secure)
-Don't expose port 8000 at all. Access it through an SSH tunnel:
-```bash
-# On your local machine
-ssh -L 8000:localhost:8000 root@YOUR_SERVER_IP
-
-# Then open http://localhost:8000 in your browser
-```
-
----
-
-## 💰 Cost Summary
-
-| Item | Monthly Cost |
-|---|---|
-| Hetzner CX22 VPS | ~₱240 |
-| Domain name (optional) | ~₱50 |
-| **Total** | **~₱240–290/month** |
-
-The bot costs less than a cup of coffee per day to run 24/7.
-
----
-
-## 🔧 Troubleshooting
-
-**Bot container keeps restarting?**
-```bash
-docker compose logs trader
-```
-Check for Python errors or network issues.
-
-**SQLite database locked?**
-This can happen if both containers write simultaneously. The current setup has only the trader writing and the dashboard reading, which is safe.
-
-**Want to reset the portfolio?**
-```bash
-docker compose down
-rm live_trading.db
-docker compose up -d
-```
-This will start fresh with ₱500,000 PHP paper money.

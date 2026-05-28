@@ -1,114 +1,96 @@
-# Cyptocurrency Algorithmic Backtester (AutoTrade)
+# Institutional-Grade Crypto Algorithmic Trader (Live Ready)
 
-A high-performance, modular, and extensible Python-based algorithmic trading backtester. It retrieves historical cryptocurrency data directly from exchanges (via CCXT), caches candles locally, runs technical trading strategies, simulates trades (accounting for transaction fees and slippage), and computes comprehensive portfolio performance metrics.
+A high-performance, fully automated cryptocurrency quantitative trading architecture. 
 
----
-
-## Features
-
-- **Robust Data Engine:** Direct exchange integration using CCXT with automatic local CSV caching and exponential backoff retry handling.
-- **Quantitative Strategy Module:** Extendable strategy interface with out-of-the-box implementations for Moving Average Crossover (SMA/EMA) and Relative Strength Index (RSI) momentum.
-- **Transaction Simulator:** Chronological simulation loop modeling capital, fractional asset shares, taker fee structures, and slippage.
-- **Risk & Performance Analytics:** Computes key performance metrics (Sharpe ratio, Max Drawdown, Profit Factor, Win Rate, and Annualized Return/CAGR) comparing results to Buy & Hold.
-- **Dual Visualizations:** Automatic rendering of terminal ASCII trendlines and saving high-quality dual-subplot PNG charts showing trade signals overlaying price alongside portfolio equity growth.
+It seamlessly transitions from deep historical backtesting to 24/7 Live Paper Trading. Features an aggressively optimized Multi-Asset VolumeRSI Breakout Strategy, sub-second tick-by-tick risk management (Stop-Loss/Take-Profit), Binance WebSocket integration, and a beautiful glassmorphic web dashboard for real-time portfolio monitoring.
 
 ---
 
-## Getting Started
+## 🌟 Core Features
 
-### 1. Prerequisites
+- **The VolumeRSI Breakout Engine:** A mathematically verified momentum strategy that dynamically scales RSI using Volume Moving Averages to catch massive crypto breakouts while filtering out low-volume chop.
+- **Tick-by-Tick Risk Management:** Unlike traditional bots that wait for a candle to close, this bot analyzes sub-second Binance WebSocket ticks to execute 1% emergency stop-losses in real-time, preventing flash-crash liquidations.
+- **Multi-Coin Streaming:** Concurrently tracks and trades an entire basket of assets (`BTC/USDT`, `ETH/USDT`, `SOL/USDT`) simultaneously on a single lightweight process.
+- **Discord Integration:** Real-time push notifications to your phone for all executed BUY/SELL orders, Stop-Loss triggers, and system shutdowns.
+- **Glassmorphic Web Dashboard:** A stunning, fully-responsive dark-mode UI built with FastAPI that live-streams your portfolio balance, active positions, and fiat currency conversions (e.g. PHP/USD).
+- **Cloud Native:** Packaged with `docker-compose` for instant deployment to Google Cloud, Oracle Cloud, or AWS.
 
-- Python 3.10+ (Fully compatible with Python 3.14+)
+---
 
-### 2. Setup Virtual Environment
+## 🚀 Live Trading Deployment
 
-Run the following commands to initialize the virtual environment and install the required dependencies:
+For full cloud deployment instructions (including Google Cloud setup, fixing Docker SQLite bugs, and configuring `.env` keys), please read the [DEPLOY.md](DEPLOY.md) guide.
 
+### Quick Start (Local Paper Trading)
+
+1. **Clone and Install:**
 ```bash
-# Create virtual environment
+git clone https://github.com/YOUR_USERNAME/autotrade.git
+cd autotrade
 python3 -m venv venv
-
-# Activate and install packages
-./venv/bin/pip install -r requirements.txt
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
-### 3. Run a Backtest
-
-By default, executing the script runs a daily (1d) Moving Average Crossover backtest for BTC/USDT for the year 2025:
-
+2. **Configure Environment:**
 ```bash
-./venv/bin/python3 main.py
+cp .env.example .env
+nano .env # Add your Discord Webhook URL here
 ```
 
-### 4. Customizing Parameters
-
-You can customize the backtester via CLI arguments:
-
+3. **Start the Live Multi-Coin Bot:**
 ```bash
-# Run the RSI strategy on 1-hour candles for a specific month
-./venv/bin/python3 main.py \
-  --strategy rsi \
+python main_live.py \
+  --symbol "BTC/USDT,ETH/USDT,SOL/USDT" \
   --timeframe 1h \
-  --start 2025-05-01 \
-  --end 2025-06-01 \
-  --capital 5000.0 \
-  --fee 0.00075 \
-  --plot my_rsi_backtest.png
+  --strategy volumersi \
+  --stop-loss 0.01 \
+  --take-profit 0.10 \
+  --rsi-oversold 35.0 \
+  --vol-multiplier 2.0
+```
 
-# Run EMA crossover strategy with custom MA windows
-./venv/bin/python3 main.py \
-  --strategy crossover \
-  --ma-type ema \
-  --fast-window 10 \
-  --slow-window 30 \
+4. **Launch the Dashboard (In a separate terminal):**
+```bash
+uvicorn web.app:app --host 0.0.0.0 --port 8000
+```
+Open `http://localhost:8000` to watch your portfolio grow!
+
+---
+
+## 🔬 Backtesting Engine
+
+Before risking capital, you can simulate years of historical data to prove the strategy works across different market regimes (Bull Markets, Bear Markets, Sideways Chop).
+
+### Run a Robustness Sweep
+```bash
+python main.py \
+  --strategy volumersi \
+  --symbol BTC/USDT \
+  --timeframe 1h \
   --start 2025-01-01 \
   --end 2025-12-31 \
-  --plot ema_crossover_run.png
+  --capital 500000.0 \
+  --plot strategy_performance.png
 ```
+
+The backtester models capital constraints, fractional shares, taker fee structures (e.g., 0.1%), and generates institutional metrics (Sharpe Ratio, Max Drawdown, Profit Factor) compared against Buy & Hold.
 
 ---
 
-## Project Architecture
+## 📂 Project Architecture
 
 ```text
 autotrade/
-├── data/
-│   ├── __init__.py
-│   └── loader.py          # Fetches CCXT data and caches to CSV files
-├── strategies/
-│   ├── __init__.py
-│   ├── base.py            # Base Strategy abstract class
-│   └── simple.py          # SMA/EMA Crossover and RSI strategies
-├── engine/
-│   ├── __init__.py
-│   ├── simulator.py       # Simulates entries, exits, position sizes, and fees
-│   └── stats.py           # Computes CAGR, Sharpe, Drawdown, Profit Factor
-├── utils/
-│   ├── __init__.py
-│   └── plots.py           # Generates ASCII trendlines and Matplotlib graphics
-├── requirements.txt       # Essential packages (ccxt, pandas, matplotlib, tabulate)
-├── main.py                # Main CLI dashboard entrypoint
-└── README.md              # Project documentation
+├── data/          # CCXT Historical Data Loaders & Caching
+├── engine/        # The Quantitative Backtester & Simulator
+├── strategies/    # Mathematical logic (VolumeRSI, MACD, EMA)
+├── live/          # The Live WebSocket Runner & Risk Executor
+├── web/           # FastAPI Glassmorphic Dashboard
+├── scripts/       # DB Management & Hyperparameter Optimizers
+├── tests/         # Unit Tests & Verification Suites
+├── docs/          # Research, System Blueprints, & Agent Plans
+├── docker-compose.yml 
+├── DEPLOY.md      
+└── README.md      
 ```
-
----
-
-## CLI Options
-
-| Argument | Type | Default | Description |
-|---|---|---|---|
-| `--symbol` | `str` | `'BTC/USDT'` | Ticker symbol to query |
-| `--timeframe` | `str` | `'1d'` | Time period per candle (`1d`, `1h`, `15m`, etc.) |
-| `--start` | `str` | `'2025-01-01'` | Start date in YYYY-MM-DD |
-| `--end` | `str` | `'2025-12-31'` | End date in YYYY-MM-DD |
-| `--strategy` | `str` | `'crossover'` | Active strategy (`crossover` or `rsi`) |
-| `--capital` | `float` | `10000.0` | Initial capital to trade with (USDT) |
-| `--fee` | `float` | `0.001` | Transaction fee rate (e.g. 0.001 = 0.1%) |
-| `--slippage` | `float` | `0.0` | Slippage rate (e.g. 0.0005 = 0.05%) |
-| `--fast-window` | `int` | `20` | Fast MA period (Moving Average strategy) |
-| `--slow-window` | `int` | `50` | Slow MA period (Moving Average strategy) |
-| `--ma-type` | `str` | `'sma'` | Moving average type: `sma` or `ema` |
-| `--rsi-window` | `int` | `14` | RSI calculation window |
-| `--rsi-overbought` | `float` | `70.0` | RSI overbought sell threshold |
-| `--rsi-oversold` | `float` | `30.0` | RSI oversold buy threshold |
-| `--plot` | `str` | `'equity_curve.png'` | Saved filename for the performance chart |
