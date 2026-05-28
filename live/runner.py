@@ -178,6 +178,22 @@ def start_live_session(
     discord_webhook_url: Optional[str] = None
 ) -> None:
     """Entrypoint to run the async WebSocket connection loop."""
+    import signal
+    import sys
+    
+    def handle_shutdown(signum, frame):
+        print(f"\n[{get_pht_now()}] System shutdown signal received. Shutting down Live Session cleanly.")
+        send_discord_alert(
+            webhook_url=discord_webhook_url,
+            title="🛑 Live Paper Trading Bot Stopped",
+            description="The live trading bot process was gracefully terminated.",
+            color=15158332, # Red
+            fields=[]
+        )
+        sys.exit(0)
+        
+    signal.signal(signal.SIGTERM, handle_shutdown)
+    
     try:
         asyncio.run(connect_binance_websocket(
             strategy=strategy,
@@ -189,12 +205,5 @@ def start_live_session(
             take_profit_pct=take_profit_pct,
             discord_webhook_url=discord_webhook_url
         ))
-    except KeyboardInterrupt:
-        print(f"\n[{get_pht_now()}] KeyboardInterrupt received. Shutting down Live Session cleanly.")
-        send_discord_alert(
-            webhook_url=discord_webhook_url,
-            title="🛑 Live Paper Trading Bot Stopped",
-            description="The live trading bot process was manually terminated.",
-            color=15158332, # Red
-            fields=[]
-        )
+    except (KeyboardInterrupt, SystemExit):
+        handle_shutdown(None, None)
