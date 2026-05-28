@@ -1,12 +1,12 @@
-# Institutional-Grade Crypto Algorithmic Trader (Live Ready)
+# Cryptocurrency Algorithmic Backtester
 
-A high-performance, fully automated cryptocurrency quantitative trading architecture. 
+A high-performance, fully automated cryptocurrency quantitative trading architecture.
 
-It seamlessly transitions from deep historical backtesting to 24/7 Live Paper Trading. Features an aggressively optimized Multi-Asset VolumeRSI Breakout Strategy, sub-second tick-by-tick risk management (Stop-Loss/Take-Profit), Binance WebSocket integration, and a beautiful glassmorphic web dashboard for real-time portfolio monitoring.
+It seamlessly transitions from deep historical backtesting to 24/7 Live Paper Trading. Features an aggressively optimized Multi-Asset VolumeRSI Breakout Strategy, sub-second tick-by-tick risk management (Stop-Loss/Take-Profit), Binance WebSocket integration, and a glassmorphic web dashboard for real-time portfolio monitoring.
 
 ---
 
-##  Core Features
+## Core Features
 
 - **The VolumeRSI Breakout Engine:** A mathematically verified momentum strategy that dynamically scales RSI using Volume Moving Averages to catch massive crypto breakouts while filtering out low-volume chop.
 - **Tick-by-Tick Risk Management:** Unlike traditional bots that wait for a candle to close, this bot analyzes sub-second Binance WebSocket ticks to execute 1% emergency stop-losses in real-time, preventing flash-crash liquidations.
@@ -17,13 +17,14 @@ It seamlessly transitions from deep historical backtesting to 24/7 Live Paper Tr
 
 ---
 
-##  Live Trading Deployment
+## Live Trading Deployment
 
 For full cloud deployment instructions (including Google Cloud setup, fixing Docker SQLite bugs, and configuring `.env` keys), please read the [DEPLOY.md](DEPLOY.md) guide.
 
 ### Quick Start (Local Paper Trading)
 
 1. **Clone and Install:**
+
 ```bash
 git clone https://github.com/YOUR_USERNAME/autotrade.git
 cd autotrade
@@ -33,12 +34,14 @@ pip install -r requirements.txt
 ```
 
 2. **Configure Environment:**
+
 ```bash
 cp .env.example .env
 nano .env # Add your Discord Webhook URL here
 ```
 
 3. **Start the Live Multi-Coin Bot:**
+
 ```bash
 python main_live.py \
   --symbol "BTC/USDT,ETH/USDT,SOL/USDT" \
@@ -51,18 +54,21 @@ python main_live.py \
 ```
 
 4. **Launch the Dashboard (In a separate terminal):**
+
 ```bash
 uvicorn web.app:app --host 0.0.0.0 --port 8000
 ```
+
 Open `http://localhost:8000` to watch your portfolio grow!
 
 ---
 
-##  Backtesting Engine
+## Backtesting Engine
 
 Before risking capital, you can simulate years of historical data to prove the strategy works across different market regimes (Bull Markets, Bear Markets, Sideways Chop).
 
 ### Run a Robustness Sweep
+
 ```bash
 python main.py \
   --strategy volumersi \
@@ -78,7 +84,7 @@ The backtester models capital constraints, fractional shares, taker fee structur
 
 ---
 
-##  Project Architecture
+## Project Architecture
 
 ```text
 autotrade/
