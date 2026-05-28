@@ -1,0 +1,37 @@
+services:
+  # Live Trading Bot (runs 24/7)
+  trader:
+    build: .
+    container_name: btc-trader
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # Persist the SQLite database across container restarts
+      - ./live_trading.db:/app/live_trading.db
+      # Persist cached market data
+      - ./data/.cache:/app/data/.cache
+    command: >
+      python main_live.py
+        --strategy rsi
+        --rsi-window 14
+        --rsi-oversold 30
+        --rsi-overbought 75
+        --stop-loss 0.03
+        --take-profit 0.10
+        --timeframe 1h
+
+  # Web Dashboard (accessible from browser)
+  dashboard:
+    build: .
+    container_name: btc-dashboard
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      # Share the same SQLite database as the trader
+      - ./live_trading.db:/app/live_trading.db
+    command: >
+      uvicorn web.app:app --host 0.0.0.0 --port 8000
+    depends_on:
+      - trader

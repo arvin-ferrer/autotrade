@@ -1,0 +1,29 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# System
+.DS_Store
+*.swp
+*.swo
+
+# Env secrets (loaded via .env file on server)
+.env
+
+# Large output files (regenerated on server)
+*.png
+optimization_results.csv
+strategy_simulation_analysis.csv
+hourly_simulation_analysis.csv
+
+# Verification scripts (not needed in production)
+test_*.py
+verify_*.py

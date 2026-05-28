@@ -1,0 +1,66 @@
+# Tasks
+
+- [x] **Phase 1: Environment Setup**
+  - [x] Create project directory `/home/arvin/Project/btc-algo-trader`
+  - [x] Create `requirements.txt` with ccxt, pandas, matplotlib, tabulate
+  - [x] Initialize Python virtual environment (`venv`) and install dependencies
+- [x] **Phase 2: Data Ingestion Module (Data Agent)**
+  - [x] Define and spawn `data_agent` subagent
+  - [x] Implement `data/loader.py` to fetch daily/hourly candles from Binance via CCXT
+  - [x] Implement caching mechanism using local CSV files
+  - [x] Verify data loader works by downloading 100 days of BTC/USDT data
+- [x] **Phase 3: Strategy Framework (Strategy Agent)**
+  - [x] Define and spawn `strategy_agent` subagent
+  - [x] Implement `strategies/base.py` defining the standard strategy interface
+  - [x] Implement `strategies/simple.py` with SMA Crossover and RSI strategies
+- [x] **Phase 4: Backtesting Engine (Backtester Agent)**
+  - [x] Define and spawn `backtest_agent` subagent
+  - [x] Implement `engine/simulator.py` event-driven transaction loop
+  - [x] Implement `engine/stats.py` calculating performance metrics
+- [x] **Phase 5: CLI Runner & Visualization (Joint)**
+  - [x] Implement `utils/plots.py` to output terminal ascii charts and save image files
+  - [x] Implement `main.py` CLI runner for parameter selection
+  - [x] Verify end-to-end functionality
+- [x] **Phase 6: Live Paper Trading Framework (Phase 1)**
+  - [x] Update `requirements.txt` to include `websockets`
+  - [x] Implement SQLite storage `live/db.py` to persist balance/trade state
+  - [x] Implement `live/executor.py` to execute mock entries/exits on database
+  - [x] Implement `live/runner.py` to listen to live Binance WebSockets
+  - [x] Implement `main_live.py` CLI runner and verify real-time operations
+- [x] **Phase 7: Strategy Parameter Optimizer**
+  - [x] Implement `optimize.py` running grid searches for Crossover and RSI strategies
+  - [x] Support sorting by custom metrics (Total Return vs. Sharpe ratio)
+  - [x] Support exporting results to CSV file
+  - [x] Verify functionality on daily 2025 BTC data
+- [x] **Phase 8: MACD Crossover Strategy**
+  - [x] Implement `MACDStrategy` in `strategies/simple.py` and export it
+  - [x] Integrate MACD parameters into `main.py` and `main_live.py`
+  - [x] Integrate MACD grid search sweeps into `optimize.py`
+  - [x] Add verification test cases in `verify_strategies.py` and run them
+- [x] **Phase 9: Strategy Simulation & Ensemble Optimization**
+  - [x] Implement risk management (Stop-Loss / Take-Profit) in `engine/simulator.py`
+  - [x] Create `optimize_backtests.py` simulation suite and evaluate strategy combinations
+  - [x] Implement `EnsembleStrategy` in `strategies/simple.py` and export it
+  - [x] Add CLI support for stop-loss, take-profit, and ensemble strategy in `main.py`
+  - [x] Implement live stop-loss/take-profit exit logic and Discord alerts in `live/executor.py` and `main_live.py`
+  - [x] Run the complete batch simulation on 2025 BTC data, save results to CSV, and analyze them
+  - [x] Verify the system end-to-end (offline and live simulations)
+- [x] **Phase 10: Glassmorphic Web Dashboard**
+  - [x] Add `fastapi`, `uvicorn`, and `jinja2` to `requirements.txt` and install them
+  - [x] Implement backend server in `web/app.py`
+  - [x] Implement HTML template in `web/templates/index.html`
+  - [x] Implement custom styles in `web/static/style.css`
+  - [x] Implement WebSocket updates and Chart.js rendering in `web/static/script.js`
+  - [x] Verify functionality end-to-end
+- [x] **Phase 11: 1-Hour Intraday Optimization & Strategy Switch**
+  - [x] Add CLI arguments to `optimize_backtests.py` for configurable timeframe, date range, capital, and output
+  - [x] Download 4,345 1-hour BTC/USDT candles (Nov 2025 – May 2026)
+  - [x] Run 910-configuration deep sweep on 1h data (Crossover, RSI, MACD, Ensemble × SL/TP grid)
+  - [x] Analyze results: RSI(14,30,75) with 3% SL / 10% TP is the best intraday strategy (+9.83% vs -15.92% Buy & Hold)
+  - [x] Stop the 1m Crossover live bot and switch to 1h RSI bot with optimized parameters
+  - [x] Update `analysis_results.md` with intraday findings and market context
+- [x] **Phase 12: Docker Deployment Infrastructure**
+  - [x] Create `Dockerfile` (Python 3.12 slim image with pip dependencies)
+  - [x] Create `docker-compose.yml` (two services: `trader` bot + `dashboard` web UI, shared SQLite volume)
+  - [x] Create `.dockerignore` (exclude venv, caches, test scripts)
+  - [x] Write comprehensive `DEPLOY.md` deployment guide (VPS setup, Docker install, launch, security, troubleshooting)

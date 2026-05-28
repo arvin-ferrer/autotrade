@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Algorithmic Trading Dashboard</title>
+    <!-- FontAwesome & Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <i class="fa-solid fa-gauge-high brand-icon"></i>
+                <span>Crypto Algo Trader</span>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="active"><a href="#"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
+                    <li><a href="#trades-section"><i class="fa-solid fa-list-check"></i> Trade Log</a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="status-indicator online"></div>
+                <span>Live WebSockets Connected</span>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="header-title">
+                    <h1>Real-Time Trading Dashboard</h1>
+                    <p class="subtitle">Monitoring multi-coin paper-trading session in Philippine Time (PHT)</p>
+                </div>
+                <div class="header-ticker">
+                    <div class="ticker-label">Portfolio Value (USD)</div>
+                    <div class="ticker-value" id="header-total-usd">$0.00 USD</div>
+                    <div class="ticker-usd" id="header-active-assets">0 Active Assets</div>
+                </div>
+            </header>
+
+            <!-- Active Position Alert Box -->
+            <div id="position-banner" class="position-banner hidden">
+                <div class="banner-icon"><i class="fa-solid fa-circle-info"></i></div>
+                <div class="banner-content">
+                    <strong>Active Position Open:</strong> Holding <span id="banner-assets-count">0</span> asset(s).
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <section class="stats-grid">
+                <div class="stat-card primary">
+                    <div class="card-bg-glow"></div>
+                    <div class="card-header">
+                        <span>Portfolio Value</span>
+                        <i class="fa-solid fa-wallet card-icon"></i>
+                    </div>
+                    <div class="card-value" id="total-val-php">₱0.00 PHP</div>
+                    <div class="card-sub" id="total-val-usd">$0.00 USD</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="card-header">
+                        <span>Cash Balance</span>
+                        <i class="fa-solid fa-coins card-icon"></i>
+                    </div>
+                    <div class="card-value" id="cash-val-php">₱0.00 PHP</div>
+                    <div class="card-sub">Available PHP to buy crypto</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="card-header">
+                        <span>Asset Allocation</span>
+                        <i class="fa-solid fa-layer-group card-icon"></i>
+                    </div>
+                    <div class="card-value" id="assets-count-val">0 Assets</div>
+                    <div class="card-sub" id="assets-val-php">Value: ₱0.00 PHP</div>
+                </div>
+
+                <div class="stat-card" id="profit-card">
+                    <div class="card-header">
+                        <span>Total Profit/Loss</span>
+                        <i class="fa-solid fa-chart-bar card-icon"></i>
+                    </div>
+                    <div class="card-value" id="profit-val-php">₱0.00 PHP</div>
+                    <div class="card-sub" id="profit-val-pct">+0.00%</div>
+                </div>
+            </section>
+
+            <!-- Secondary Analytics Grid -->
+            <section class="analytics-row">
+                <div class="stat-card mini">
+                    <div class="card-title">Win Rate</div>
+                    <div class="card-large" id="win-rate-val">0.00%</div>
+                    <div class="card-desc">Closed profitable trades</div>
+                </div>
+                <div class="stat-card mini">
+                    <div class="card-title">Trades Executed</div>
+                    <div class="card-large" id="trades-count-val">0</div>
+                    <div class="card-desc">Total orders filled</div>
+                </div>
+            </section>
+
+            <!-- Current Assets Section -->
+            <section class="assets-section">
+                <div class="section-header">
+                    <h2>Current Assets</h2>
+                </div>
+                <div class="assets-grid" id="assets-grid">
+                    <div class="text-secondary" style="grid-column: 1 / -1; text-align: center; padding: 2rem;">No active assets...</div>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="charts-row">
+                <div class="chart-container large">
+                    <h3>Equity Curve Growth (PHP)</h3>
+                    <div class="canvas-wrapper">
+                        <canvas id="equityChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-container small">
+                    <h3>Asset Allocation</h3>
+                    <div class="canvas-wrapper">
+                        <canvas id="allocationChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Trade Log Table Section -->
+            <section class="table-container" id="trades-section">
+                <div class="table-header">
+                    <h2>Completed & Active Trade Execution Log</h2>
+                    <button class="btn-refresh" onclick="loadTrades()"><i class="fa-solid fa-rotate"></i> Reload Logs</button>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Type</th>
+                                <th>Entry Date (PHT)</th>
+                                <th>Exit Date (PHT)</th>
+                                <th>Entry Price (PHP)</th>
+                                <th>Exit Price (PHP)</th>
+                                <th>Trade Size</th>
+                                <th>Profit/Loss (PHP)</th>
+                                <th>Fee (PHP)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trades-tbody">
+                            <tr>
+                                <td colspan="10" class="text-center">Loading trade logs...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+    <!-- Custom Script -->
+    <script src="/static/script.js"></script>
+</body>
+</html>

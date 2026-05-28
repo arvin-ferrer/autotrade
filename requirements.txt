@@ -1,0 +1,8 @@
+ccxt
+pandas
+matplotlib
+tabulate
+websockets
+fastapi
+uvicorn
+jinja2
