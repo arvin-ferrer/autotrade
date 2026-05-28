@@ -102,7 +102,7 @@ async def connect_binance_websocket(
                     print(
                         f"\r[{get_pht_now()}] {symbol_k} Tick: {dt.strftime('%Y-%m-%d %H:%M:%S')} | "
                         f"Price: ${close_price:,.2f} USD (₱{close_price * php_usd_rate:,.2f} PHP) | "
-                        f"Closed: {is_closed}", end=""
+                        f"Closed: {is_closed}", end="", flush=True
                     )
                     
                     # Evaluate risk limits instantly on the live tick
