@@ -1,4 +1,4 @@
-# Bitcoin Algorithmic Backtester (btc-algo-trader)
+# Cyptocurrency Algorithmic Backtester (AutoTrade)
 
 A high-performance, modular, and extensible Python-based algorithmic trading backtester. It retrieves historical cryptocurrency data directly from exchanges (via CCXT), caches candles locally, runs technical trading strategies, simulates trades (accounting for transaction fees and slippage), and computes comprehensive portfolio performance metrics.
 
