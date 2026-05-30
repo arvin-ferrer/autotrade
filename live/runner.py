@@ -62,22 +62,26 @@ async def connect_binance_websocket(
                 
             start_str = start_dt.strftime('%Y-%m-%d %H:%M:%S')
             
-            df_buffers = {}
+            def fetch_bootstrap_data(syms, tf, start_s):
+                buffers = {}
+                for sym in syms:
+                    try:
+                        buf = get_ohlcv(sym, tf, start_date=start_s)
+                        print(f"[{get_pht_now()}] Loaded {len(buf)} buffer candles for {sym}.")
+                        buffers[sym] = buf
+                    except Exception as e:
+                        print(f"[{get_pht_now()}] Error loading bootstrap candles for {sym}: {e}. Starting with empty cache.")
+                        buf = pd.DataFrame(columns=['Open', 'High', 'Low', 'Close', 'Volume'])
+                        buf.index.name = 'Timestamp'
+                        buffers[sym] = buf
+                return buffers
+
+            df_buffers = await asyncio.to_thread(fetch_bootstrap_data, symbols, timeframe, start_str)
             
             # Map stream name back to symbol
             stream_to_symbol = {f"{sym.replace('/', '').lower()}@kline_{timeframe}": sym for sym in symbols}
-            
-            for symbol in symbols:
-                try:
-                    df_buffer = get_ohlcv(symbol, timeframe, start_date=start_str)
-                    print(f"[{get_pht_now()}] Loaded {len(df_buffer)} buffer candles for {symbol}.")
-                    df_buffers[symbol] = df_buffer
-                except Exception as e:
-                    print(f"[{get_pht_now()}] Error loading bootstrap candles for {symbol}: {e}. Starting with empty cache.")
-                    df_buffers[symbol] = pd.DataFrame(columns=['Open', 'High', 'Low', 'Close', 'Volume'])
-                    df_buffers[symbol].index.name = 'Timestamp'
 
-            async with websockets.connect(url) as websocket:
+            async with websockets.connect(url, ping_interval=20, ping_timeout=20) as websocket:
                 print(f"[{get_pht_now()}] Connected! Listening for real-time ticks...")
                 
                 async for message in websocket:
@@ -139,17 +143,27 @@ async def connect_binance_websocket(
                         df_buffer = df_buffer.tail(200)  # Keep last 200 rows to optimize memory
                         df_buffers[symbol_k] = df_buffer
                         
-                        # Generate strategy signals
-                        df_signals = strategy.generate_signals(df_buffer)
-                        
-                        # Execute trade checking in a separate thread to prevent blocking the async loop
+                        # Process signals and execute in a separate thread to prevent blocking
+                        def process_signal_for(sym_k, df_buf, cur_fee, cur_php_rate, cur_sl_pct, cur_tp_pct, cur_webhook):
+                            df_sig = strategy.generate_signals(df_buf)
+                            execute_live_signal(
+                                df=df_sig,
+                                symbol=sym_k,
+                                fee_rate=cur_fee,
+                                php_usd_rate=cur_php_rate,
+                                stop_loss_pct=cur_sl_pct,
+                                discord_webhook_url=cur_webhook
+                            )
+                            
                         await asyncio.to_thread(
-                            execute_live_signal,
-                            df=df_signals,
-                            symbol=symbol_k,
-                            fee_rate=fee_rate,
-                            php_usd_rate=php_usd_rate,
-                            discord_webhook_url=discord_webhook_url
+                            process_signal_for,
+                            symbol_k,
+                            df_buffer.copy(),
+                            fee_rate,
+                            php_usd_rate,
+                            stop_loss_pct,
+                            take_profit_pct,
+                            discord_webhook_url
                         )
                         
         except (websockets.ConnectionClosed, Exception) as e:

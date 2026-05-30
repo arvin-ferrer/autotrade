@@ -194,3 +194,9 @@ async def websocket_endpoint(websocket: WebSocket):
         print("[WebSocket] Client disconnected")
     except Exception as e:
         print(f"[WebSocket Loop Error] {e}")
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("web.app:app", host="0.0.0.0", port=port)

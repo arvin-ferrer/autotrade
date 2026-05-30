@@ -23,6 +23,8 @@ def init_db(initial_cash_php: float = 500000.0) -> None:
     """
     conn = get_db_connection()
     cursor = conn.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL;")
+    cursor.execute("PRAGMA synchronous=NORMAL;")
     
     # Check if portfolio has btc_holdings
     cursor.execute("PRAGMA table_info(portfolio)")
@@ -40,6 +42,12 @@ def init_db(initial_cash_php: float = 500000.0) -> None:
     )
     """)
     
+    # Check if trades has stop_price_usd
+    cursor.execute("PRAGMA table_info(trades)")
+    trade_columns = [col['name'] for col in cursor.fetchall()]
+    if trade_columns and 'stop_price_usd' not in trade_columns:
+        cursor.execute("DROP TABLE trades")
+        
     # Create trades table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS trades (
@@ -56,6 +64,8 @@ def init_db(initial_cash_php: float = 500000.0) -> None:
         fee_php REAL NOT NULL,
         profit_usd REAL,
         profit_php REAL,
+        stop_price_usd REAL,
+        highest_price_usd REAL,
         status TEXT NOT NULL CHECK (status IN ('OPEN', 'CLOSED'))
     )
     """)
@@ -122,7 +132,9 @@ def open_trade(
     entry_price_php: float, 
     size: float, 
     fee_usd: float, 
-    fee_php: float
+    fee_php: float,
+    stop_price_usd: float,
+    highest_price_usd: float
 ) -> int:
     """
     Inserts a new open trade into the database.
@@ -134,10 +146,10 @@ def open_trade(
         """
         INSERT INTO trades (
             symbol, entry_time, entry_price_usd, entry_price_php, 
-            size, fee_usd, fee_php, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'OPEN')
+            size, fee_usd, fee_php, stop_price_usd, highest_price_usd, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OPEN')
         """,
-        (symbol, now_str, entry_price_usd, entry_price_php, size, fee_usd, fee_php)
+        (symbol, now_str, entry_price_usd, entry_price_php, size, fee_usd, fee_php, stop_price_usd, highest_price_usd)
     )
     trade_id = cursor.lastrowid
     conn.commit()
@@ -168,6 +180,16 @@ def close_trade(
         WHERE id = ?
         """,
         (now_str, exit_price_usd, exit_price_php, fee_usd, fee_php, profit_usd, profit_php, trade_id)
+    )
+    conn.commit()
+    conn.close()
+
+def update_trade_stop(trade_id: int, new_stop: float, new_highest: float) -> None:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE trades SET stop_price_usd = ?, highest_price_usd = ? WHERE id = ?",
+        (new_stop, new_highest, trade_id)
     )
     conn.commit()
     conn.close()

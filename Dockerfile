@@ -21,13 +21,5 @@ RUN mkdir -p data/.cache
 # Expose the dashboard port
 EXPOSE 8000
 
-# Default: run the live trading bot
-# Override via docker-compose command or docker run args
-CMD ["python", "main_live.py", \
-     "--strategy", "rsi", \
-     "--rsi-window", "14", \
-     "--rsi-oversold", "30", \
-     "--rsi-overbought", "75", \
-     "--stop-loss", "0.03", \
-     "--take-profit", "0.10", \
-     "--timeframe", "1h"]
+# Default: run both the live trading bot and the web dashboard
+CMD ["bash", "start.sh"]

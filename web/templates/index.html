@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bitcoin Algorithmic Trading Dashboard</title>
     <!-- FontAwesome & Fonts -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <!-- Custom Style -->
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -115,7 +118,10 @@
                     <h2>Current Assets</h2>
                 </div>
                 <div class="assets-grid" id="assets-grid">
-                    <div class="text-secondary" style="grid-column: 1 / -1; text-align: center; padding: 2rem;">No active assets...</div>
+                    <div class="empty-state">
+                        <i class="fa-solid fa-ghost empty-icon"></i>
+                        <p>No active assets...</p>
+                    </div>
                 </div>
             </section>
 

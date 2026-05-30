@@ -3,6 +3,9 @@ import urllib.request
 import pandas as pd
 from typing import Optional
 from live.db import get_open_trade, open_trade, close_trade, get_portfolio, update_portfolio, get_pht_now
+import threading
+
+portfolio_lock = threading.Lock()
 
 def send_discord_alert(webhook_url: Optional[str], title: str, description: str, color: int, fields: list) -> None:
     """
@@ -57,9 +60,10 @@ def check_risk_limits(
     Evaluates real-time stop-loss/take-profit triggers on every tick.
     Processes emergency exits in the SQLite database and sends Discord notifications.
     """
-    cash_php, holdings = get_portfolio()
-    open_t = get_open_trade(symbol)
-    asset_holding = holdings.get(symbol, 0.0)
+    with portfolio_lock:
+        cash_php, holdings = get_portfolio()
+        open_t = get_open_trade(symbol)
+        asset_holding = holdings.get(symbol, 0.0)
     
     if open_t is not None and asset_holding > 0.0:
         entry_price = float(open_t['entry_price_usd'])
@@ -84,8 +88,8 @@ def check_risk_limits(
                 exit_trigger_price = tp_threshold
                 
         if risk_triggered:
-            # Execute Risk Sell Order
-            sell_price_usd = exit_trigger_price
+            # Execute Risk Sell Order (Simulate slippage by filling at current tick price)
+            sell_price_usd = current_price
             sell_price_php = sell_price_usd * php_usd_rate
             
             sell_value_usd = asset_holding * sell_price_usd
@@ -149,6 +153,7 @@ def execute_live_signal(
     symbol: str = 'BTC/USDT',
     fee_rate: float = 0.001,
     php_usd_rate: float = 58.5,
+    stop_loss_pct: Optional[float] = None,
     discord_webhook_url: Optional[str] = None
 ) -> None:
     """
@@ -163,9 +168,10 @@ def execute_live_signal(
     price_usd = float(last_row['Close'])
     price_php = price_usd * php_usd_rate
     
-    cash_php, holdings = get_portfolio()
-    open_t = get_open_trade(symbol)
-    asset_holding = holdings.get(symbol, 0.0)
+    with portfolio_lock:
+        cash_php, holdings = get_portfolio()
+        open_t = get_open_trade(symbol)
+        asset_holding = holdings.get(symbol, 0.0)
     
     # Check for standard strategy Signals
     if signal == 1.0:
@@ -179,9 +185,8 @@ def execute_live_signal(
         # Execute BUY Order
         cash_usd = cash_php / php_usd_rate
         
-        atr_val = last_row.get('atr', last_row.get('ATR', None))
-        if pd.notna(atr_val) and atr_val > 0:
-            target_size = (cash_usd * 0.02) / (atr_val * 2.0)
+        if stop_loss_pct is not None and stop_loss_pct > 0:
+            target_size = (cash_usd * 0.02) / (price_usd * stop_loss_pct)
         else:
             target_size = (cash_usd * 0.20) / price_usd
             

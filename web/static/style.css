@@ -26,8 +26,28 @@
 
 body {
     background-color: var(--bg-main);
+    background-image: 
+        radial-gradient(circle at 15% 50%, rgba(124, 77, 255, 0.08), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(0, 242, 254, 0.08), transparent 25%);
+    background-attachment: fixed;
     color: var(--text-primary);
     overflow-x: hidden;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 /* App Container Layout */
@@ -351,6 +371,8 @@ body {
     border-radius: 20px;
     padding: 2rem;
     margin-top: 1.5rem;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 500px;
 }
 
 .table-header {
@@ -409,6 +431,11 @@ th {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding-bottom: 1.25rem;
+    position: sticky;
+    top: 0;
+    backdrop-filter: blur(10px);
+    background: rgba(10, 12, 19, 0.85);
+    z-index: 10;
 }
 
 tbody tr {
@@ -577,4 +604,19 @@ tbody tr:hover {
 .price-val {
     color: var(--text-primary);
     font-weight: 500;
+}
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    opacity: 0.6;
+}
+.empty-icon {
+    font-size: 3rem;
+    color: var(--border-color);
 }

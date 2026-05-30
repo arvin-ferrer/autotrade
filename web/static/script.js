@@ -175,22 +175,52 @@ function updateDashboardDOM(m) {
     // Render Assets
     const assetsGrid = document.getElementById("assets-grid");
     if (m.assets && m.assets.length > 0) {
-        assetsGrid.innerHTML = m.assets.map(a => `
-            <div class="asset-card">
-                <div class="asset-header">
-                    <div class="asset-symbol">${a.symbol}</div>
-                    <div class="asset-icon"><i class="${a.symbol.includes('BTC') ? 'fa-brands fa-bitcoin' : (a.symbol.includes('ETH') ? 'fa-brands fa-ethereum' : 'fa-solid fa-coins')}"></i></div>
-                </div>
-                <div class="asset-amount">${a.amount.toFixed(6)}</div>
-                <div class="asset-value">₱${a.value_php.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                <div class="asset-price">
-                    <span>Price</span>
-                    <span class="price-val">$${a.price_usd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                </div>
-            </div>
-        `).join('');
+        // Surgical DOM updates instead of innerHTML thrashing
+        const existingEmpty = assetsGrid.querySelector('.empty-state');
+        if (existingEmpty) assetsGrid.removeChild(existingEmpty);
+        
+        m.assets.forEach(a => {
+            const safeSymbol = a.symbol.replace('/', '-');
+            let card = document.getElementById(`asset-card-${safeSymbol}`);
+            if (!card) {
+                card = document.createElement('div');
+                card.id = `asset-card-${safeSymbol}`;
+                card.className = "asset-card";
+                card.innerHTML = `
+                    <div class="asset-header">
+                        <div class="asset-symbol">${a.symbol}</div>
+                        <div class="asset-icon"><i class="${a.symbol.includes('BTC') ? 'fa-brands fa-bitcoin' : (a.symbol.includes('ETH') ? 'fa-brands fa-ethereum' : 'fa-solid fa-coins')}"></i></div>
+                    </div>
+                    <div class="asset-amount" id="asset-amt-${safeSymbol}"></div>
+                    <div class="asset-value" id="asset-val-${safeSymbol}"></div>
+                    <div class="asset-price">
+                        <span>Price</span>
+                        <span class="price-val" id="asset-price-${safeSymbol}"></span>
+                    </div>
+                `;
+                assetsGrid.appendChild(card);
+            }
+            document.getElementById(`asset-amt-${safeSymbol}`).innerText = a.amount.toFixed(6);
+            document.getElementById(`asset-val-${safeSymbol}`).innerText = \`₱\${a.value_php.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}\`;
+            document.getElementById(`asset-price-${safeSymbol}`).innerText = \`$\${a.price_usd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}\`;
+        });
+        
+        // Remove stale cards
+        Array.from(assetsGrid.children).forEach(child => {
+            if (child.id && child.id.startsWith('asset-card-')) {
+                const sym = child.id.replace('asset-card-', '').replace('-', '/');
+                if (!m.assets.find(a => a.symbol === sym)) {
+                    assetsGrid.removeChild(child);
+                }
+            }
+        });
     } else {
-        assetsGrid.innerHTML = `<div class="text-secondary" style="grid-column: 1 / -1; text-align: center; padding: 2rem;">No active assets...</div>`;
+        assetsGrid.innerHTML = `
+            <div class="empty-state">
+                <i class="fa-solid fa-ghost empty-icon"></i>
+                <p>No active assets...</p>
+            </div>
+        `;
     }
 
     // Proactively reload trade list if the status changes

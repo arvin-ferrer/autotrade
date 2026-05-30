@@ -329,13 +329,13 @@ class VolumeRSIStrategy(BaseStrategy):
         # Calculate Volume MA (Shifted by 1 to prevent current volume from inflating the baseline)
         df_out['vol_ma'] = df_out['Volume'].shift(1).rolling(window=self.vol_ma_window).mean()
         
-        # Calculate ATR for position sizing (shifted to prevent look-ahead bias)
+        # Calculate ATR for position sizing (using Wilder's smoothing)
         high_low = df_out['High'] - df_out['Low']
         high_close = np.abs(df_out['High'] - df_out['Close'].shift())
         low_close = np.abs(df_out['Low'] - df_out['Close'].shift())
         ranges = pd.concat([high_low, high_close, low_close], axis=1)
         true_range = ranges.max(axis=1)
-        df_out['atr'] = true_range.shift(1).rolling(14).mean()
+        df_out['atr'] = true_range.ewm(alpha=1/14, adjust=False).mean()
         
         # Generate Signals
         df_out['Signal'] = 0.0
