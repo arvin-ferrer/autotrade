@@ -10,8 +10,10 @@ services:
       - ./live_trading.db:/app/live_trading.db
       # Persist cached market data
       - ./data/.cache:/app/data/.cache
+    environment:
+      - PYTHONUNBUFFERED=1
     command: >
-      python main_csm.py
+      python -u main_csm.py
 
   # Web Dashboard (accessible from browser)
   dashboard:
@@ -24,6 +26,8 @@ services:
     volumes:
       # Share the same SQLite database as the trader
       - ./live_trading.db:/app/live_trading.db
+    environment:
+      - PYTHONUNBUFFERED=1
     command: >
       uvicorn web.app:app --host 0.0.0.0 --port 8000
     depends_on:
