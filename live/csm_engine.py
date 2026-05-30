@@ -195,6 +195,18 @@ async def connect_csm_websocket(symbols: List[str], fee_rate: float, php_usd_rat
             data = event['data']['k']
             symbol_k = stream_to_symbol.get(event['stream'])
             
+            # Periodic Price Watch (Print BTC price every 5 minutes)
+            if symbol_k == 'BTC/USDT':
+                import time
+                current_time = time.time()
+                # Initialize last_print_time attribute on the function if it doesn't exist
+                if not hasattr(connect_csm_websocket, "last_print_time"):
+                    connect_csm_websocket.last_print_time = 0
+                    
+                if current_time - connect_csm_websocket.last_print_time > 300: # 300 seconds = 5 minutes
+                    print(f"[{get_pht_now()}] 👁️ Price Watch | {symbol_k}: ${float(data['c']):,.2f} | Awaiting Daily Close...")
+                    connect_csm_websocket.last_print_time = current_time
+            
             # Accumulate Daily Closes
             if data['x']: # is_closed
                 dt = pd.to_datetime(data['t'], unit='ms', utc=True)
