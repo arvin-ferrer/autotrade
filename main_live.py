@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-from strategies import CrossoverStrategy, RSIStrategy, MACDStrategy, EnsembleStrategy, VolumeRSIStrategy
+from strategies import CrossoverStrategy, RSIStrategy, MACDStrategy, EnsembleStrategy, VolumeRSIStrategy, AdaptiveHighBetaBreakoutStrategy
 from live.db import init_db, get_portfolio, get_pht_now
 from live.runner import start_live_session
 
@@ -48,10 +48,10 @@ def main():
     parser = argparse.ArgumentParser(description="Binance Live Paper Trading Bot (PHP & PHT Timezone)")
     
     # Live settings
-    parser.add_argument('--symbol', type=str, default='BTC/USDT', help="Symbol(s) to trade, comma separated (default: BTC/USDT)")
-    parser.add_argument('--timeframe', type=str, default='1m', help="Kline timeframe to monitor (default: 1m)")
-    parser.add_argument('--strategy', type=str, default='crossover', choices=['crossover', 'rsi', 'macd', 'ensemble', 'volumersi'], 
-                        help="Strategy to run (default: crossover)")
+    parser.add_argument('--symbol', type=str, default='SOL/USDT,DOGE/USDT,ADA/USDT,LINK/USDT,DOT/USDT', help="Symbol(s) to trade, comma separated (default: SOL/USDT,DOGE/USDT,ADA/USDT,LINK/USDT,DOT/USDT)")
+    parser.add_argument('--timeframe', type=str, default='4h', help="Kline timeframe to monitor (default: 4h)")
+    parser.add_argument('--strategy', type=str, default='breakout', choices=['crossover', 'rsi', 'macd', 'ensemble', 'volumersi', 'breakout'], 
+                        help="Strategy to run (default: breakout)")
     
     # Capital & Local Conversion settings
     parser.add_argument('--initial-cash', type=float, default=500000.0, 
@@ -65,7 +65,13 @@ def main():
     parser.add_argument('--php-usd-rate', type=float, default=None, 
                         help="PHP/USD conversion rate. If omitted, fetches live rate automatically.")
     
-    parser.add_argument('--fee', type=float, default=0.001, help="Transaction fee rate (e.g. 0.001 = 0.1%%) (default: 0.001)")
+    parser.add_argument('--fee', type=float, default=0.0005, help="Transaction fee rate (e.g. 0.0005 = 0.05%%) (default: 0.0005)")
+    
+    # V2 Breakout risk parameters
+    parser.add_argument('--stop-mult', type=float, default=2.0, help="V2: ATR trailing stop multiplier (default: 2.0)")
+    parser.add_argument('--tp-mult', type=float, default=10.0, help="V2: ATR take-profit multiplier (default: 10.0)")
+    parser.add_argument('--risk-pct', type=float, default=0.01, help="V2: Risk per trade as fraction of equity (default: 0.01 = 1%%)")
+    parser.add_argument('--max-leverage', type=float, default=2.0, help="V2: Maximum leverage per coin (default: 2.0)")
     
     # Read Discord Webhook: command-line arg -> .env file -> None
     default_webhook = env.get('DISCORD_WEBHOOK_URL', None)
@@ -160,6 +166,14 @@ def main():
             'vol_multiplier': args.vol_multiplier
         }
         strategy = VolumeRSIStrategy(name="Volume_RSI_Breakout", params=params)
+    elif args.strategy == 'breakout':
+        params = {
+            'atr_window': 14,
+            'baseline_window': 50,
+            'donchian_window': 20,
+            'vol_threshold': 1.2
+        }
+        strategy = AdaptiveHighBetaBreakoutStrategy(name="Adaptive_HighBeta_Breakout", params=params)
     else: # ensemble
         params = {
             'fast_window': args.fast_window,
@@ -175,6 +189,13 @@ def main():
         }
         strategy = EnsembleStrategy(name=f"Ensemble_{args.ensemble_rules}", params=params)
         
+    # Determine if V2 mode
+    is_v2 = (args.strategy == 'breakout')
+    
+    if is_v2:
+        print(f"V2 Risk Params:  Stop={args.stop_mult}x ATR, TP={args.tp_mult}x ATR, Risk={args.risk_pct*100:.1f}%, MaxLev={args.max_leverage}x")
+        print("=======================================================\n")
+    
     # Start loop
     start_live_session(
         strategy=strategy,
@@ -184,7 +205,14 @@ def main():
         php_usd_rate=php_usd_rate,
         stop_loss_pct=args.stop_loss,
         take_profit_pct=args.take_profit,
-        discord_webhook_url=args.discord_webhook
+        discord_webhook_url=args.discord_webhook,
+        # V2 params
+        is_v2=is_v2,
+        stop_mult=args.stop_mult,
+        tp_mult=args.tp_mult,
+        risk_pct=args.risk_pct,
+        max_leverage=args.max_leverage,
+        initial_equity=args.initial_cash / php_usd_rate,  # Convert PHP to USD for V2 equity
     )
 
 if __name__ == '__main__':

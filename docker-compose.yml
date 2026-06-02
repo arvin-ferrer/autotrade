@@ -13,7 +13,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     command: >
-      python -u main_csm.py
+      python -u main_live.py
 
   # Web Dashboard (accessible from browser)
   dashboard:

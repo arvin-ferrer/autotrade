@@ -70,6 +70,26 @@ def init_db(initial_cash_php: float = 500000.0) -> None:
     )
     """)
     
+    # Create V2 positions table for bidirectional perps-style trading
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS positions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT NOT NULL,
+        direction TEXT NOT NULL CHECK (direction IN ('LONG', 'SHORT')),
+        entry_time TEXT NOT NULL,
+        exit_time TEXT,
+        entry_price_usd REAL NOT NULL,
+        qty REAL NOT NULL,
+        trailing_stop_price REAL NOT NULL,
+        take_profit_price REAL NOT NULL,
+        extreme_close REAL NOT NULL,
+        total_funding REAL NOT NULL DEFAULT 0.0,
+        fee_usd REAL NOT NULL DEFAULT 0.0,
+        profit_usd REAL,
+        status TEXT NOT NULL CHECK (status IN ('OPEN', 'CLOSED'))
+    )
+    """)
+    
     conn.commit()
     
     # Initialize portfolio check
@@ -109,6 +129,114 @@ def update_portfolio(cash_php: float, holdings: dict) -> None:
     )
     conn.commit()
     conn.close()
+
+# ============================================================================
+# V2 POSITIONS CRUD — Bidirectional LONG/SHORT position management
+# ============================================================================
+
+def get_open_position(symbol: str) -> Optional[Dict[str, Any]]:
+    """
+    Get the active open V2 position for a symbol, or None.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM positions WHERE status = 'OPEN' AND symbol = ?", (symbol,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return None
+
+def open_position(
+    symbol: str,
+    direction: str,
+    entry_price: float,
+    qty: float,
+    trailing_stop: float,
+    take_profit: float,
+    extreme_close: float,
+    fee: float
+) -> int:
+    """
+    Opens a new V2 position (LONG or SHORT) and returns the position ID.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    now_str = get_pht_now()
+    cursor.execute(
+        """
+        INSERT INTO positions (
+            symbol, direction, entry_time, entry_price_usd, qty,
+            trailing_stop_price, take_profit_price, extreme_close,
+            total_funding, fee_usd, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0.0, ?, 'OPEN')
+        """,
+        (symbol, direction, now_str, entry_price, qty,
+         trailing_stop, take_profit, extreme_close, fee)
+    )
+    position_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return position_id
+
+def update_position_stop(position_id: int, new_stop: float, new_extreme: float) -> None:
+    """
+    Update trailing stop and extreme close for ratcheting.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE positions SET trailing_stop_price = ?, extreme_close = ? WHERE id = ?",
+        (new_stop, new_extreme, position_id)
+    )
+    conn.commit()
+    conn.close()
+
+def update_position_funding(position_id: int, funding_amount: float) -> None:
+    """
+    Accumulate funding rate payment/receipt on a position.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE positions SET total_funding = total_funding + ? WHERE id = ?",
+        (funding_amount, position_id)
+    )
+    conn.commit()
+    conn.close()
+
+def close_position(position_id: int, exit_price: float, profit: float, exit_fee: float) -> None:
+    """
+    Close a V2 position with final P&L.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    now_str = get_pht_now()
+    cursor.execute(
+        """
+        UPDATE positions
+        SET exit_time = ?, fee_usd = fee_usd + ?, profit_usd = ?, status = 'CLOSED'
+        WHERE id = ?
+        """,
+        (now_str, exit_fee, profit, position_id)
+    )
+    conn.commit()
+    conn.close()
+
+def get_position_history() -> List[Dict[str, Any]]:
+    """
+    Returns all V2 positions (open and closed) ordered chronologically.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM positions ORDER BY id ASC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+# ============================================================================
+# LEGACY V1 TRADES CRUD — kept for backward compatibility
+# ============================================================================
 
 def get_open_trade(symbol: str = None) -> Optional[Dict[str, Any]]:
     """

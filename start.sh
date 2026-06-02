@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Start the KAMA Trading Engine in the background
-echo "Starting KAMA Trading Engine..."
-python main_csm.py &
+# Start the V2 Breakout Trading Engine in the background
+echo "Starting V2 Breakout Trading Engine..."
+python main_live.py &
 BOT_PID=$!
 
 # Start the FastAPI Web Dashboard in the foreground

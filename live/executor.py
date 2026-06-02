@@ -1,8 +1,13 @@
 import json
 import urllib.request
 import pandas as pd
+from datetime import datetime, timezone
 from typing import Optional
-from live.db import get_open_trade, open_trade, close_trade, get_portfolio, update_portfolio, get_pht_now
+from live.db import (
+    get_open_trade, open_trade, close_trade, get_portfolio, update_portfolio, get_pht_now,
+    get_open_position, open_position, update_position_stop,
+    update_position_funding, close_position
+)
 import threading
 
 portfolio_lock = threading.Lock()
@@ -300,3 +305,393 @@ def execute_live_signal(
             color=alert_color,
             fields=fields
         )
+
+
+# ============================================================================
+# V2 BREAKOUT EXECUTOR — Bidirectional LONG/SHORT with ATR trailing stops
+# ============================================================================
+
+def execute_v2_signal(
+    df: pd.DataFrame,
+    symbol: str,
+    last_total_equity: float,
+    num_symbols: int,
+    fee_rate: float = 0.0005,
+    funding_rate: float = 0.0001,
+    stop_mult: float = 2.0,
+    tp_mult: float = 10.0,
+    risk_pct: float = 0.01,
+    max_leverage: float = 2.0,
+    php_usd_rate: float = 58.5,
+    discord_webhook_url: Optional[str] = None
+) -> None:
+    """
+    V2 breakout executor: processes candle-close signals for bidirectional
+    LONG/SHORT positions with ATR-based risk management.
+    
+    Mirrors the backtest engine in scripts/breakout_v2_backtest.py lines 146-249.
+    Signal at bar T-1 → execution at bar T open (which in live = current candle close).
+    """
+    if df.empty or len(df) < 2:
+        return
+
+    last_row = df.iloc[-1]
+
+    # The candle that JUST closed is last_row. Its signal is what we trade on.
+    # Its Close price is the exact same as the next candle's Open price.
+    prev_signal = float(last_row.get('Signal', 0.0))
+    prev_atr = float(last_row.get('atr', 0.0))
+    
+    curr_close = float(last_row['Close'])
+    
+    if pd.isna(prev_atr) or prev_atr <= 0:
+        return
+
+    with portfolio_lock:
+        pos = get_open_position(symbol)
+
+        if pos is None:
+            # FLAT → check for entry signals
+            if prev_signal == 1.0:
+                # === OPEN LONG ===
+                exec_price = curr_close  # Live: current candle close = next bar open proxy
+                risk_amount = last_total_equity * risk_pct
+                qty = risk_amount / (stop_mult * prev_atr)
+                max_qty = (last_total_equity * max_leverage / num_symbols) / exec_price
+                qty = min(qty, max_qty)
+
+                if qty <= 0:
+                    return
+
+                notional = qty * exec_price
+                fee = notional * fee_rate
+                trailing_stop = exec_price - (stop_mult * prev_atr)
+                take_profit = exec_price + (tp_mult * prev_atr)
+
+                pos_id = open_position(
+                    symbol=symbol,
+                    direction='LONG',
+                    entry_price=exec_price,
+                    qty=qty,
+                    trailing_stop=trailing_stop,
+                    take_profit=take_profit,
+                    extreme_close=curr_close,
+                    fee=fee
+                )
+
+                log_msg = (
+                    f"🟢 [V2 LONG ENTRY] Position #{pos_id}\n"
+                    f"Asset:          {symbol}\n"
+                    f"Price:          ${exec_price:,.4f} USD (₱{exec_price * php_usd_rate:,.2f} PHP)\n"
+                    f"Qty:            {qty:.6f}\n"
+                    f"Notional:       ${notional:,.2f} USD\n"
+                    f"ATR (prev):     ${prev_atr:,.4f}\n"
+                    f"Trailing Stop:  ${trailing_stop:,.4f}\n"
+                    f"Take Profit:    ${take_profit:,.4f}\n"
+                    f"Fee:            ${fee:,.4f} USD"
+                )
+                print(log_msg)
+
+                fields = [
+                    {"name": "Direction", "value": "📈 LONG", "inline": True},
+                    {"name": "Price (USD)", "value": f"${exec_price:,.4f}", "inline": True},
+                    {"name": "Qty", "value": f"{qty:.6f}", "inline": True},
+                    {"name": "ATR", "value": f"${prev_atr:,.4f}", "inline": True},
+                    {"name": "Trailing Stop", "value": f"${trailing_stop:,.4f}", "inline": True},
+                    {"name": "Take Profit", "value": f"${take_profit:,.4f}", "inline": True},
+                    {"name": "Notional", "value": f"${notional:,.2f} USD", "inline": False},
+                    {"name": "Funding Rate", "value": f"{funding_rate*100:.3f}% per 8h", "inline": True},
+                ]
+                send_discord_alert(
+                    webhook_url=discord_webhook_url,
+                    title=f"🟢 V2 LONG ENTRY (Position #{pos_id})",
+                    description=f"Breakout signal triggered LONG entry on {symbol}.",
+                    color=3066993,
+                    fields=fields
+                )
+
+            elif prev_signal == -1.0:
+                # === OPEN SHORT ===
+                exec_price = curr_close
+                risk_amount = last_total_equity * risk_pct
+                qty = risk_amount / (stop_mult * prev_atr)
+                max_qty = (last_total_equity * max_leverage / num_symbols) / exec_price
+                qty = min(qty, max_qty)
+
+                if qty <= 0:
+                    return
+
+                notional = qty * exec_price
+                fee = notional * fee_rate
+                trailing_stop = exec_price + (stop_mult * prev_atr)
+                take_profit = exec_price - (tp_mult * prev_atr)
+
+                pos_id = open_position(
+                    symbol=symbol,
+                    direction='SHORT',
+                    entry_price=exec_price,
+                    qty=qty,
+                    trailing_stop=trailing_stop,
+                    take_profit=take_profit,
+                    extreme_close=curr_close,
+                    fee=fee
+                )
+
+                log_msg = (
+                    f"🔴 [V2 SHORT ENTRY] Position #{pos_id}\n"
+                    f"Asset:          {symbol}\n"
+                    f"Price:          ${exec_price:,.4f} USD (₱{exec_price * php_usd_rate:,.2f} PHP)\n"
+                    f"Qty:            {qty:.6f}\n"
+                    f"Notional:       ${notional:,.2f} USD\n"
+                    f"ATR (prev):     ${prev_atr:,.4f}\n"
+                    f"Trailing Stop:  ${trailing_stop:,.4f}\n"
+                    f"Take Profit:    ${take_profit:,.4f}\n"
+                    f"Fee:            ${fee:,.4f} USD"
+                )
+                print(log_msg)
+
+                fields = [
+                    {"name": "Direction", "value": "📉 SHORT", "inline": True},
+                    {"name": "Price (USD)", "value": f"${exec_price:,.4f}", "inline": True},
+                    {"name": "Qty", "value": f"{qty:.6f}", "inline": True},
+                    {"name": "ATR", "value": f"${prev_atr:,.4f}", "inline": True},
+                    {"name": "Trailing Stop", "value": f"${trailing_stop:,.4f}", "inline": True},
+                    {"name": "Take Profit", "value": f"${take_profit:,.4f}", "inline": True},
+                    {"name": "Notional", "value": f"${notional:,.2f} USD", "inline": False},
+                    {"name": "Funding Rate", "value": f"{funding_rate*100:.3f}% per 8h", "inline": True},
+                ]
+                send_discord_alert(
+                    webhook_url=discord_webhook_url,
+                    title=f"🔴 V2 SHORT ENTRY (Position #{pos_id})",
+                    description=f"Breakout signal triggered SHORT entry on {symbol}.",
+                    color=15158332,
+                    fields=fields
+                )
+
+        elif pos['direction'] == 'LONG':
+            if prev_signal == -1.0:
+                # === CLOSE LONG on signal reversal ===
+                exit_price = curr_close
+                proceeds = pos['qty'] * exit_price
+                exit_fee = proceeds * fee_rate
+                pnl = proceeds - exit_fee - (pos['qty'] * pos['entry_price_usd'])
+    
+                close_position(
+                    position_id=pos['id'],
+                    exit_price=exit_price,
+                    profit=pnl,
+                    exit_fee=exit_fee
+                )
+    
+                pnl_pct = (pnl / (pos['qty'] * pos['entry_price_usd'])) * 100.0
+                log_msg = (
+                    f"🏁 [V2 LONG EXIT — Signal Reversal] Position #{pos['id']}\n"
+                    f"Asset:          {symbol}\n"
+                    f"Direction:      LONG\n"
+                    f"Entry:          ${pos['entry_price_usd']:,.4f}\n"
+                    f"Exit:           ${exit_price:,.4f}\n"
+                    f"P&L:            ${pnl:+,.4f} ({pnl_pct:+.2f}%)\n"
+                    f"Funding Paid:   ${pos['total_funding']:,.4f}"
+                )
+                print(log_msg)
+    
+                fields = [
+                    {"name": "Direction", "value": "📈 LONG → CLOSED", "inline": True},
+                    {"name": "Exit Reason", "value": "Signal Reversal", "inline": True},
+                    {"name": "Entry", "value": f"${pos['entry_price_usd']:,.4f}", "inline": True},
+                    {"name": "Exit", "value": f"${exit_price:,.4f}", "inline": True},
+                    {"name": "P&L", "value": f"${pnl:+,.4f} ({pnl_pct:+.2f}%)", "inline": True},
+                    {"name": "Total Funding", "value": f"${pos['total_funding']:,.4f}", "inline": True},
+                ]
+                alert_color = 3066993 if pnl >= 0 else 15158332
+                send_discord_alert(
+                    webhook_url=discord_webhook_url,
+                    title=f"🏁 V2 LONG CLOSED (Position #{pos['id']})",
+                    description=f"Signal reversal closed LONG on {symbol}.",
+                    color=alert_color,
+                    fields=fields
+                )
+            else:
+                # === RATCHET TRAILING STOP ===
+                new_extreme = max(pos['extreme_close'], curr_close)
+                new_ts = max(pos['trailing_stop_price'], new_extreme - (stop_mult * prev_atr))
+                if new_extreme != pos['extreme_close'] or new_ts != pos['trailing_stop_price']:
+                    update_position_stop(pos['id'], new_ts, new_extreme)
+
+        elif pos['direction'] == 'SHORT':
+            if prev_signal == 1.0:
+                # === CLOSE SHORT on signal reversal ===
+                exit_price = curr_close
+                cost = pos['qty'] * exit_price
+                exit_fee = cost * fee_rate
+                pnl = (pos['entry_price_usd'] - exit_price) * pos['qty'] - exit_fee
+    
+                close_position(
+                    position_id=pos['id'],
+                    exit_price=exit_price,
+                    profit=pnl,
+                    exit_fee=exit_fee
+                )
+    
+                pnl_pct = (pnl / (pos['qty'] * pos['entry_price_usd'])) * 100.0
+                log_msg = (
+                    f"🏁 [V2 SHORT EXIT — Signal Reversal] Position #{pos['id']}\n"
+                    f"Asset:          {symbol}\n"
+                    f"Direction:      SHORT\n"
+                    f"Entry:          ${pos['entry_price_usd']:,.4f}\n"
+                    f"Exit:           ${exit_price:,.4f}\n"
+                    f"P&L:            ${pnl:+,.4f} ({pnl_pct:+.2f}%)\n"
+                    f"Funding Recv:   ${pos['total_funding']:,.4f}"
+                )
+                print(log_msg)
+    
+                fields = [
+                    {"name": "Direction", "value": "📉 SHORT → CLOSED", "inline": True},
+                    {"name": "Exit Reason", "value": "Signal Reversal", "inline": True},
+                    {"name": "Entry", "value": f"${pos['entry_price_usd']:,.4f}", "inline": True},
+                    {"name": "Exit", "value": f"${exit_price:,.4f}", "inline": True},
+                    {"name": "P&L", "value": f"${pnl:+,.4f} ({pnl_pct:+.2f}%)", "inline": True},
+                    {"name": "Total Funding", "value": f"${pos['total_funding']:,.4f}", "inline": True},
+                ]
+                alert_color = 3066993 if pnl >= 0 else 15158332
+                send_discord_alert(
+                    webhook_url=discord_webhook_url,
+                    title=f"🏁 V2 SHORT CLOSED (Position #{pos['id']})",
+                    description=f"Signal reversal closed SHORT on {symbol}.",
+                    color=alert_color,
+                    fields=fields
+                )
+            else:
+                # === RATCHET TRAILING STOP ===
+                new_extreme = min(pos['extreme_close'], curr_close)
+                new_ts = min(pos['trailing_stop_price'], new_extreme + (stop_mult * prev_atr))
+                if new_extreme != pos['extreme_close'] or new_ts != pos['trailing_stop_price']:
+                    update_position_stop(pos['id'], new_ts, new_extreme)
+
+
+def check_v2_risk(
+    symbol: str,
+    tick_price: float,
+    curr_atr: float,
+    fee_rate: float = 0.0005,
+    funding_rate: float = 0.0001,
+    stop_mult: float = 2.0,
+    php_usd_rate: float = 58.5,
+    discord_webhook_url: Optional[str] = None
+) -> None:
+    """
+    V2 real-time risk check on every tick:
+    - ATR trailing stop ratcheting
+    - Take-profit evaluation
+    - Funding rate application at hours 0, 8, 16 UTC
+    
+    Mirrors the backtest engine in scripts/breakout_v2_backtest.py lines 187-249.
+    """
+    with portfolio_lock:
+        pos = get_open_position(symbol)
+
+    if pos is None:
+        return
+
+    direction = pos['direction']
+    trailing_stop = pos['trailing_stop_price']
+    take_profit = pos['take_profit_price']
+    extreme = pos['extreme_close']
+    qty = pos['qty']
+    entry_price = pos['entry_price_usd']
+    pos_id = pos['id']
+
+    exit_triggered = False
+    exit_reason = ""
+    exit_price = tick_price
+
+    if direction == 'LONG':
+        # Check trailing stop
+        if tick_price <= trailing_stop:
+            exit_triggered = True
+            exit_reason = "TRAILING STOP"
+            exit_price = trailing_stop  # Fill at stop level
+        # Check take profit
+        elif tick_price >= take_profit:
+            exit_triggered = True
+            exit_reason = "TAKE PROFIT"
+            exit_price = take_profit
+
+    elif direction == 'SHORT':
+        # Check trailing stop
+        if tick_price >= trailing_stop:
+            exit_triggered = True
+            exit_reason = "TRAILING STOP"
+            exit_price = trailing_stop
+        # Check take profit
+        elif tick_price <= take_profit:
+            exit_triggered = True
+            exit_reason = "TAKE PROFIT"
+            exit_price = take_profit
+
+    if exit_triggered:
+        with portfolio_lock:
+            if direction == 'LONG':
+                proceeds = qty * exit_price
+                exit_fee = proceeds * fee_rate
+                pnl = proceeds - exit_fee - (qty * entry_price)
+            else:  # SHORT
+                cost = qty * exit_price
+                exit_fee = cost * fee_rate
+                pnl = (entry_price - exit_price) * qty - exit_fee
+
+            close_position(
+                position_id=pos_id,
+                exit_price=exit_price,
+                profit=pnl,
+                exit_fee=exit_fee
+            )
+
+        pnl_pct = (pnl / (qty * entry_price)) * 100.0 if entry_price > 0 else 0.0
+        log_msg = (
+            f"🚨 [V2 {exit_reason}] Position #{pos_id}\n"
+            f"Asset:          {symbol}\n"
+            f"Direction:      {direction}\n"
+            f"Entry:          ${entry_price:,.4f}\n"
+            f"Exit:           ${exit_price:,.4f}\n"
+            f"P&L:            ${pnl:+,.4f} ({pnl_pct:+.2f}%)\n"
+            f"Funding Total:  ${pos['total_funding']:,.4f}"
+        )
+        print(log_msg)
+
+        fields = [
+            {"name": "Direction", "value": f"{'📈' if direction == 'LONG' else '📉'} {direction}", "inline": True},
+            {"name": "Exit Reason", "value": f"🚨 {exit_reason}", "inline": True},
+            {"name": "Entry", "value": f"${entry_price:,.4f}", "inline": True},
+            {"name": "Exit", "value": f"${exit_price:,.4f}", "inline": True},
+            {"name": "P&L", "value": f"${pnl:+,.4f} ({pnl_pct:+.2f}%)", "inline": True},
+            {"name": "ATR Stop", "value": f"${trailing_stop:,.4f}", "inline": True},
+            {"name": "Total Funding", "value": f"${pos['total_funding']:,.4f}", "inline": False},
+        ]
+        alert_color = 15158332 if exit_reason == "TRAILING STOP" else 15844367
+        send_discord_alert(
+            webhook_url=discord_webhook_url,
+            title=f"🛑 V2 {exit_reason} ({direction} Position #{pos_id})",
+            description=f"ATR-based {exit_reason.lower()} triggered on {symbol}.",
+            color=alert_color,
+            fields=fields
+        )
+        return
+
+    # Funding rate application at UTC hours 0, 8, 16
+    now_utc = datetime.now(timezone.utc)
+    if now_utc.hour in [0, 8, 16] and now_utc.minute == 0:
+        funding_amount = qty * tick_price * funding_rate
+        if direction == 'LONG':
+            # LONG pays funding
+            funding_amount = -funding_amount
+        # else SHORT receives (positive)
+        
+        with portfolio_lock:
+            update_position_funding(pos_id, funding_amount)
+        
+        print(
+            f"💰 [V2 FUNDING] Position #{pos_id} {symbol} {direction}: "
+            f"${funding_amount:+,.4f} (rate={funding_rate*100:.3f}%)"
+        )
+
