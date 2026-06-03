@@ -1,27 +1,26 @@
-# Cryptocurrency Algorithmic Backtester
+# Cryptocurrency Algorithmic Backtester & Live Bot
 
 A high-performance, fully automated cryptocurrency quantitative trading architecture.
 
-It seamlessly transitions from deep historical backtesting to 24/7 Live Paper Trading. Features an aggressively optimized Multi-Asset VolumeRSI Breakout Strategy, sub-second tick-by-tick risk management (Stop-Loss/Take-Profit), Binance WebSocket integration, and a glassmorphic web dashboard for real-time portfolio monitoring.
+It seamlessly transitions from deep historical backtesting to 24/7 Live Paper Trading. Features an aggressively optimized **V2 Adaptive High-Beta Breakout Strategy**, dynamic Inverse-ATR position sizing, tick-by-tick ATR trailing stop ratcheting, Binance WebSocket integration, and a glassmorphic web dashboard for real-time portfolio monitoring.
 
 ---
 
 ## Core Features
 
-- **The VolumeRSI Breakout Engine:** A mathematically verified momentum strategy that dynamically scales RSI using Volume Moving Averages to catch massive crypto breakouts while filtering out low-volume chop.
-- **Tick-by-Tick Risk Management:** Unlike traditional bots that wait for a candle to close, this bot analyzes sub-second Binance WebSocket ticks to execute 1% emergency stop-losses in real-time, preventing flash-crash liquidations.
-- **Multi-Coin Streaming:** Concurrently tracks and trades an entire basket of assets (`BTC/USDT`, `ETH/USDT`, `SOL/USDT`) simultaneously on a single lightweight process.
-- **Discord Integration:** Real-time push notifications to your phone for all executed BUY/SELL orders, Stop-Loss triggers, and system shutdowns.
-- **Glassmorphic Web Dashboard:** A stunning, fully-responsive dark-mode UI built with FastAPI that live-streams your portfolio balance, active positions, and fiat currency conversions (e.g. PHP/USD).
-- **Cloud Native:** Packaged with `docker-compose` for instant deployment to Google Cloud, Oracle Cloud, or AWS.
+- **V2 Breakout Engine:** A mathematically verified, bidirectional (Long/Short) strategy designed for the 4-hour timeframe. It uses Donchian Channels and ATR-based volatility filters to capture massive crypto breakouts.
+- **Tick-by-Tick Risk Management:** Unlike traditional bots that wait for a candle to close, this bot evaluates ATR-based trailing stops and take-profits on every single Binance WebSocket tick, ratcheting up protection dynamically.
+- **Inverse-ATR Risk Parity:** Automatically sizes positions based on current market volatility so you always risk exactly a fixed percentage (e.g., 1%) of your portfolio per trade, explicitly capped by a maximum leverage.
+- **Perpetual Futures Simulation:** Accurately models real-world friction by applying simulated 0.05% taker fees, slippage, and 0.01% 8-hour funding rates for Long/Short positions.
+- **Discord Integration:** Real-time push notifications to your phone for all executed entries, trailing stop triggers, and system shutdowns.
+- **Glassmorphic Web Dashboard:** A stunning, fully-responsive dark-mode UI built with FastAPI that live-streams your portfolio balance and active positions.
+- **Cloud Native:** Packaged with `docker-compose` for instant 24/7 deployment to any cloud provider.
 
 ---
 
-## Live Trading Deployment
+## Quick Start (Local Paper Trading)
 
-For full cloud deployment instructions (including Google Cloud setup, fixing Docker SQLite bugs, and configuring `.env` keys), please read the [DEPLOY.md](DEPLOY.md) guide.
-
-### Quick Start (Local Paper Trading)
+For full cloud deployment instructions, please read the [DEPLOY.md](DEPLOY.md) guide.
 
 1. **Clone and Install:**
 
@@ -44,13 +43,12 @@ nano .env # Add your Discord Webhook URL here
 
 ```bash
 python main_live.py \
-  --symbol "BTC/USDT,ETH/USDT,SOL/USDT" \
-  --timeframe 1h \
-  --strategy volumersi \
-  --stop-loss 0.01 \
-  --take-profit 0.10 \
-  --rsi-oversold 35.0 \
-  --vol-multiplier 2.0
+  --symbol "SOL/USDT,DOGE/USDT,ADA/USDT,LINK/USDT,DOT/USDT" \
+  --timeframe 4h \
+  --strategy breakout \
+  --stop-mult 2.0 \
+  --tp-mult 10.0 \
+  --risk-pct 0.01
 ```
 
 4. **Launch the Dashboard (In a separate terminal):**
@@ -58,29 +56,18 @@ python main_live.py \
 ```bash
 uvicorn web.app:app --host 0.0.0.0 --port 8000
 ```
-
-Open `http://localhost:8000` to watch your portfolio grow!
+Open `http://localhost:8000` to watch your portfolio!
 
 ---
 
 ## Backtesting Engine
 
-Before risking capital, you can simulate years of historical data to prove the strategy works across different market regimes (Bull Markets, Bear Markets, Sideways Chop).
-
-### Run a Robustness Sweep
+Before risking capital, simulate years of historical data to prove the strategy works across different market regimes.
 
 ```bash
-python main.py \
-  --strategy volumersi \
-  --symbol BTC/USDT \
-  --timeframe 1h \
-  --start 2025-01-01 \
-  --end 2025-12-31 \
-  --capital 500000.0 \
-  --plot strategy_performance.png
+python scripts/breakout_v2_backtest.py
 ```
-
-The backtester models capital constraints, fractional shares, taker fee structures (e.g., 0.1%), and generates institutional metrics (Sharpe Ratio, Max Drawdown, Profit Factor) compared against Buy & Hold.
+The backtester generates institutional metrics (Sharpe Ratio, Max Drawdown, CAGR) compared against a Buy & Hold benchmark.
 
 ---
 
@@ -90,10 +77,10 @@ The backtester models capital constraints, fractional shares, taker fee structur
 autotrade/
 ├── data/          # CCXT Historical Data Loaders & Caching
 ├── engine/        # The Quantitative Backtester & Simulator
-├── strategies/    # Mathematical logic (VolumeRSI, MACD, EMA)
+├── strategies/    # Mathematical logic (Breakout, VolumeRSI)
 ├── live/          # The Live WebSocket Runner & Risk Executor
 ├── web/           # FastAPI Glassmorphic Dashboard
-├── scripts/       # DB Management & Hyperparameter Optimizers
+├── scripts/       # DB Management & Backtest Optimization Scripts
 ├── tests/         # Unit Tests & Verification Suites
 ├── docs/          # Research, System Blueprints, & Agent Plans
 ├── docker-compose.yml 

@@ -1,4 +1,4 @@
-#  Deployment Guide: Running the VolumeRSI Multi-Asset Bot 24/7
+#  Deployment Guide: Running the V2 Breakout Bot 24/7
 
 This guide walks you through deploying the live trading bot and glassmorphic web dashboard to a cloud server so it runs continuously without your computer being on.
 
@@ -6,7 +6,7 @@ This guide walks you through deploying the live trading bot and glassmorphic web
 
 ## Step 1: Choose a Free Cloud Provider
 
-Because the bot uses the Binance API (which bans US IP addresses), you must host your server in **Asia** or **Europe**. 
+Because the bot relies on the Binance data streams, you must host your server outside of US jurisdictions. 
 
 | Provider | Region | Price | Recommended? |
 |---|---|---|---|
@@ -78,7 +78,7 @@ touch live_trading.db
 sudo docker-compose up -d --build
 ```
 
-That's it! The bot is now running 24/7. 
+That's it! The bot is now running the V2 Breakout Strategy 24/7. 
 
 ### Verify It's Running
 
@@ -126,5 +126,6 @@ sudo docker compose up -d --build
 ```bash
 sudo docker compose down
 git pull
-sudo docker compose up -d --build
+sudo docker compose build
+sudo docker compose up -d
 ```
