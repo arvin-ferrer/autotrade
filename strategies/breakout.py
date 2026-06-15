@@ -2,6 +2,8 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 from strategies.base import BaseStrategy
+import os
+import json
 
 class AdaptiveHighBetaBreakoutStrategy(BaseStrategy):
     """
@@ -15,7 +17,7 @@ class AdaptiveHighBetaBreakoutStrategy(BaseStrategy):
         self.donchian_window = self.params.get('donchian_window', 20)
         self.vol_threshold = self.params.get('vol_threshold', 1.0)
         
-    def generate_signals(self, df: pd.DataFrame) -> pd.DataFrame:
+    def generate_signals(self, df: pd.DataFrame, symbol: str = None) -> pd.DataFrame:
         df_out = df.copy()
         
         min_len = max(self.atr_window + 1, self.baseline_window, self.donchian_window + 1)
@@ -45,10 +47,31 @@ class AdaptiveHighBetaBreakoutStrategy(BaseStrategy):
                       df_out['atr_baseline'].notna() & 
                       df_out['upper_channel'].notna() & 
                       df_out['lower_channel'].notna())
-                      
-        buy_condition = (df_out['Close'] > df_out['upper_channel']) & (df_out['atr'] > df_out['atr_baseline'] * self.vol_threshold)
-        sell_condition = (df_out['Close'] < df_out['lower_channel'])
-        
+
+        sentiment_score = 0.0
+
+        try:
+            if os.path.exists("data/daily_sentiment.json"):
+                with open("data/daily_sentiment.json", "r") as f:
+                    rag_data = json.load(f)
+                    
+                    if symbol and symbol in rag_data.get("data", {}):
+                        sym_data = rag_data["data"][symbol]
+                        import time
+                        # Check if this specific symbol's data is fresh (less than 6 hours old)
+                        if time.time() - sym_data.get("timestamp", 0) < 21600:
+                            sentiment_score = float(sym_data.get("sentiment_score", 0.0))
+        except Exception:
+            pass
+
+        # buy_condition = (df_out['Close'] > df_out['upper_channel']) & (df_out['atr'] > df_out['atr_baseline'] * self.vol_threshold)
+        # sell_condition = (df_out['Close'] < df_out['lower_channel'])
+        raw_buy = (df_out['Close'] > df_out['upper_channel']) & (df_out['atr'] > df_out['atr_baseline'] * self.vol_threshold)
+        raw_sell = (df_out['Close'] < df_out['lower_channel']) & (df_out['atr'] > df_out['atr_baseline'] * self.vol_threshold)
+
+        buy_condition = raw_buy & (sentiment_score >= -0.3)
+        sell_condition = raw_sell & (sentiment_score <= 0.3)
+
         df_out.loc[valid_mask, 'Signal'] = np.where(
             buy_condition[valid_mask],
             1.0,
