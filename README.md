@@ -9,6 +9,7 @@ It seamlessly transitions from deep historical backtesting to 24/7 Live Paper Tr
 ## Core Features
 
 - **V2 Breakout Engine:** A mathematically verified, bidirectional (Long/Short) strategy designed for the 4-hour timeframe. It uses Donchian Channels and ATR-based volatility filters to capture massive crypto breakouts.
+- **RAG Sentiment Filter:** An autonomous Retrieval-Augmented Generation pipeline that scrapes crypto RSS feeds and uses Google Gemini LLMs to quantitatively score macroeconomic sentiment, mathematically blocking trades that fight the news trend.
 - **Tick-by-Tick Risk Management:** Unlike traditional bots that wait for a candle to close, this bot evaluates ATR-based trailing stops and take-profits on every single Binance WebSocket tick, ratcheting up protection dynamically.
 - **Inverse-ATR Risk Parity:** Automatically sizes positions based on current market volatility so you always risk exactly a fixed percentage (e.g., 1%) of your portfolio per trade, explicitly capped by a maximum leverage.
 - **Perpetual Futures Simulation:** Accurately models real-world friction by applying simulated 0.05% taker fees, slippage, and 0.01% 8-hour funding rates for Long/Short positions.
@@ -36,7 +37,7 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-nano .env # Add your Discord Webhook URL here
+nano .env # Add your Discord Webhook URL and GEMINI_API_KEY here
 ```
 
 3. **Start the Live Multi-Coin Bot:**
@@ -78,7 +79,7 @@ autotrade/
 ├── data/          # CCXT Historical Data Loaders & Caching
 ├── engine/        # The Quantitative Backtester & Simulator
 ├── strategies/    # Mathematical logic (Breakout, VolumeRSI)
-├── live/          # The Live WebSocket Runner & Risk Executor
+├── live/          # Live WebSocket Runner, Risk Executor, and RAG News Engine
 ├── web/           # FastAPI Glassmorphic Dashboard
 ├── scripts/       # DB Management & Backtest Optimization Scripts
 ├── tests/         # Unit Tests & Verification Suites

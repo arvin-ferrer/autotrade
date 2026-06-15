@@ -12,3 +12,5 @@ optimization_results.csv
 strategy_simulation_analysis.csv
 equity_curve.png
 *.log
+data/*.json
+data/*.lock
