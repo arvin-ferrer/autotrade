@@ -205,7 +205,7 @@ async def connect_binance_websocket(
                             def process_v2_signal(sym_k, df_buf, equity, n_syms, cur_fee, cur_funding,
                                                   cur_stop_m, cur_tp_m, cur_risk, cur_max_lev,
                                                   cur_php_rate, cur_webhook):
-                                df_sig = strategy.generate_signals(df_buf)
+                                df_sig = strategy.generate_signals(df_buf, symbol=sym_k)
                                 # Cache the signal DataFrame for ATR on ticks
                                 last_signal_df[sym_k] = df_sig
                                 execute_v2_signal(
@@ -246,7 +246,7 @@ async def connect_binance_websocket(
                         else:
                             # Legacy path: process signals and execute
                             def process_signal_for(sym_k, df_buf, cur_fee, cur_php_rate, cur_sl_pct, cur_tp_pct, cur_webhook):
-                                df_sig = strategy.generate_signals(df_buf)
+                                df_sig = strategy.generate_signals(df_buf, symbol=sym_k)
                                 execute_live_signal(
                                     df=df_sig,
                                     symbol=sym_k,

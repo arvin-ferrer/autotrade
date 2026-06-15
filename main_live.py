@@ -1,6 +1,9 @@
 import argparse
 import os
 import sys
+import threading
+import subprocess
+import time
 from strategies import CrossoverStrategy, RSIStrategy, MACDStrategy, EnsembleStrategy, VolumeRSIStrategy, AdaptiveHighBetaBreakoutStrategy
 from live.db import init_db, get_portfolio, get_pht_now
 from live.runner import start_live_session
@@ -40,6 +43,17 @@ def get_live_php_usd_rate(fallback_rate: float) -> float:
     except Exception as e:
         print(f"[FX API Warning] Failed to fetch real-time rate: {e}. Using fallback: ₱{fallback_rate:.2f} PHP")
         return fallback_rate
+
+def run_sentiment_engine_loop(symbols_str):
+    """Runs the RAG sentiment engine every 12 hours in the background."""
+    while True:
+        print(f"[{get_pht_now()}] [News Engine] Fetching latest RAG sentiment...")
+        try:
+            subprocess.run([sys.executable, "live/sentiment_engine.py", "--symbols", symbols_str], check=True, timeout=600)
+        except Exception as e:
+            print(f"[News Engine Error] Failed to run sentiment engine: {e}")
+        # Sleep for 1 hour (3600 seconds) to match the fast-paced crypto news cycle
+        time.sleep(3600)
 
 def main():
     # Load env variables first
@@ -195,6 +209,9 @@ def main():
     if is_v2:
         print(f"V2 Risk Params:  Stop={args.stop_mult}x ATR, TP={args.tp_mult}x ATR, Risk={args.risk_pct*100:.1f}%, MaxLev={args.max_leverage}x")
         print("=======================================================\n")
+    
+    # Start the background RAG sentiment engine thread
+    threading.Thread(target=run_sentiment_engine_loop, args=(args.symbol,), daemon=True).start()
     
     # Start loop
     start_live_session(
